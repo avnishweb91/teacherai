@@ -1,0 +1,162 @@
+import { useState } from "react";
+import DashboardLayout from "../layout/DashboardLayout";
+import api from "../services/api";
+
+export default function GenerateLesson() {
+  const [syllabus, setSyllabus]   = useState("");
+  const [subject, setSubject]     = useState("");
+  const [grade, setGrade]         = useState("");
+  const [topic, setTopic]         = useState("");
+  const [duration, setDuration]   = useState(40);
+  const [languages, setLanguages] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [lesson, setLesson]   = useState("");
+  const [error, setError]     = useState("");
+  const [saved, setSaved]     = useState(false);
+
+  const handleGenerate = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLesson("");
+    setSaved(false);
+    setLoading(true);
+    try {
+      const response = await api.post("/api/lesson/generate", {
+        syllabus, subject, grade, topic, duration
+      });
+      setLesson(response.data.content);
+    } catch (err) {
+      if (err.response?.status === 401)      setError("Session expired. Please login again.");
+      else if (err.response?.status === 429) setError("AI usage limit exceeded. Try later.");
+      else                                   setError("Failed to generate lesson. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = () => {
+    const savedLessons = JSON.parse(localStorage.getItem("lessons") || "[]");
+    localStorage.setItem("lessons", JSON.stringify([
+      ...savedLessons,
+      { id: Date.now(), syllabus, subject, grade, topic, duration, languages, content: lesson, createdAt: new Date().toISOString() }
+    ]));
+    setSaved(true);
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="page-header">
+        <h1 className="page-title">Generate Lesson Plan</h1>
+        <p className="page-subtitle">Fill in the details below and let AI create a lesson plan for you.</p>
+      </div>
+
+      <div className="card" style={{ maxWidth: 720 }}>
+        <form onSubmit={handleGenerate}>
+          <div className="form-grid">
+
+            <div className="form-field">
+              <label className="form-label">Board / Syllabus</label>
+              <select className="form-select" value={syllabus} onChange={(e) => setSyllabus(e.target.value)} required>
+                <option value="">Select board</option>
+                <option value="CBSE">CBSE</option>
+                <option value="ICSE">ICSE</option>
+                <option value="Bihar Board">Bihar Board</option>
+              </select>
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">Subject</label>
+              <select className="form-select" value={subject} onChange={(e) => setSubject(e.target.value)} required>
+                <option value="">Select subject</option>
+                <option value="Maths">Maths</option>
+                <option value="Science">Science</option>
+                <option value="English">English</option>
+                <option value="Social Science">Social Science</option>
+              </select>
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">Class / Grade</label>
+              <select className="form-select" value={grade} onChange={(e) => setGrade(e.target.value)} required>
+                <option value="">Select class</option>
+                {[...Array(12)].map((_, i) => (
+                  <option key={i + 1} value={i + 1}>Class {i + 1}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-field">
+              <label className="form-label">Duration (minutes)</label>
+              <input
+                type="number"
+                className="form-input"
+                min="20"
+                max="90"
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+              />
+            </div>
+
+            <div className="form-field form-field-full">
+              <label className="form-label">Topic</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. Fractions, Photosynthesis, The French Revolution"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-field form-field-full">
+              <label className="form-label">Language(s)</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. English / Hindi"
+                value={languages}
+                onChange={(e) => setLanguages(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="alert-error" style={{ marginTop: 16 }}>
+              <span>⚠️</span> {error}
+            </div>
+          )}
+
+          <div style={{ marginTop: 20 }}>
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading && <span className="spinner" />}
+              {loading ? "Generating with AI…" : "✨ Generate Lesson Plan"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {lesson && (
+        <div className="result-box">
+          <div className="result-box-header">
+            <span className="result-box-title">📘 Generated Lesson Plan</span>
+            <div className="result-box-actions">
+              <button className="btn-success" onClick={handleSave} disabled={saved}>
+                {saved ? "✓ Saved" : "💾 Save Lesson"}
+              </button>
+            </div>
+          </div>
+
+          <pre className="result-text">{lesson}</pre>
+
+          {saved && (
+            <div className="alert-success">
+              <span>✅</span> Lesson saved to history successfully.
+            </div>
+          )}
+        </div>
+      )}
+    </DashboardLayout>
+  );
+}

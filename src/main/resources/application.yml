@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:teacherdb;DB_CLOSE_DELAY=-1}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.h2.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:sa}
+
+  h2:
+    console:
+      enabled: ${H2_CONSOLE_ENABLED:true}
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    database-platform: ${JPA_PLATFORM:org.hibernate.dialect.H2Dialect}
+
+openai:
+  api:
+    key: ${OPENAI_API_KEY:}
+    url: "https://api.openai.com/v1/chat/completions"
+
+allowed:
+  origins: ${ALLOWED_ORIGINS:http://localhost:5173}

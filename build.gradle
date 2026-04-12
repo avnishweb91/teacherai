@@ -47,3 +47,8 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// Disable the plain JAR — only keep the Spring Boot executable fat JAR
+jar {
+	enabled = false
+}

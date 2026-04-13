@@ -28,7 +28,7 @@ export default function Login({ onLogin, onSwitchMode }) {
     setLoading(true);
     setError("");
     try {
-      await api.post("/api/auth/send-otp", { mobile });
+      await api.post("/api/auth/send-otp", { mobile: "+91" + mobile });
       setStep("OTP");
     } catch (err) {
       const msg = err?.response?.data || err?.message || "Failed to send OTP. Please try again.";
@@ -43,7 +43,7 @@ export default function Login({ onLogin, onSwitchMode }) {
     setLoading(true);
     setError("");
     try {
-      const res = await api.post("/api/auth/verify-otp", { mobile, otp });
+      const res = await api.post("/api/auth/verify-otp", { mobile: "+91" + mobile, otp });
       if (res.data?.token) {
         localStorage.setItem("token", res.data.token);
         onLogin();
@@ -63,7 +63,7 @@ export default function Login({ onLogin, onSwitchMode }) {
     setLoading(true);
     setError("");
     try {
-      const res = await api.post("/api/auth/register", { name, email, mobile, password });
+      const res = await api.post("/api/auth/register", { name, email, mobile: "+91" + mobile, password });
       localStorage.setItem("token", res.data.token);
       onLogin();
     } catch {
@@ -113,16 +113,32 @@ export default function Login({ onLogin, onSwitchMode }) {
         <>
           <div className="auth-field">
             <label className="auth-label" htmlFor="mobile">Mobile number</label>
-            <input
-              id="mobile"
-              type="tel"
-              className="auth-input"
-              placeholder="10-digit mobile number"
-              value={mobile}
-              onChange={(e) => setMobile(e.target.value.replace(/\D/, ""))}
-              maxLength={10}
-              autoComplete="tel"
-            />
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{
+                padding: "0 12px",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                background: "#f3f4f6",
+                border: "1px solid #d1d5db",
+                borderRadius: "8px",
+                fontWeight: 600,
+                color: "#374151",
+                whiteSpace: "nowrap",
+                lineHeight: "44px"
+              }}>+91</span>
+              <input
+                id="mobile"
+                type="tel"
+                className="auth-input"
+                placeholder="10-digit mobile number"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value.replace(/\D/, ""))}
+                maxLength={10}
+                autoComplete="tel"
+                style={{ flex: 1 }}
+              />
+            </div>
           </div>
 
           <button

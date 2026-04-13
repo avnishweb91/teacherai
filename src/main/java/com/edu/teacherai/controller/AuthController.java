@@ -41,8 +41,12 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Invalid mobile number. Must be 10 digits.");
         }
 
-        authService.sendOtp(mobile);
-        return ResponseEntity.ok("OTP sent successfully");
+        try {
+            authService.sendOtp(mobile);
+            return ResponseEntity.ok("OTP sent successfully");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Send OTP failed: " + e.getMessage());
+        }
     }
 
     /* =========================

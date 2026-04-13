@@ -30,8 +30,9 @@ export default function Login({ onLogin, onSwitchMode }) {
     try {
       await api.post("/api/auth/send-otp", { mobile });
       setStep("OTP");
-    } catch {
-      setError("Failed to send OTP. Please check the number and try again.");
+    } catch (err) {
+      const msg = err?.response?.data || err?.message || "Failed to send OTP. Please try again.";
+      setError(typeof msg === "string" ? msg : JSON.stringify(msg));
     } finally {
       setLoading(false);
     }
@@ -49,8 +50,9 @@ export default function Login({ onLogin, onSwitchMode }) {
       } else {
         setStep("REGISTER");
       }
-    } catch {
-      setError("Invalid or expired OTP. Please try again.");
+    } catch (err) {
+      const msg = err?.response?.data || err?.message || "Invalid or expired OTP. Please try again.";
+      setError(typeof msg === "string" ? msg : JSON.stringify(msg));
     } finally {
       setLoading(false);
     }

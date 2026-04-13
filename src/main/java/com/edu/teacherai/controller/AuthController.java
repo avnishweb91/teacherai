@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @SuppressWarnings("unused")
-@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -35,6 +34,11 @@ public class AuthController {
         String mobile = req.get("mobile");
         if (mobile == null || mobile.isBlank()) {
             return ResponseEntity.badRequest().body("Mobile number is required");
+        }
+        // Accept 10-digit numbers or E.164 format (+91XXXXXXXXXX)
+        String digits = mobile.startsWith("+91") ? mobile.substring(3) : mobile;
+        if (!digits.matches("\\d{10}")) {
+            return ResponseEntity.badRequest().body("Invalid mobile number. Must be 10 digits.");
         }
 
         authService.sendOtp(mobile);

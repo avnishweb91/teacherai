@@ -23,17 +23,20 @@ public class AuthService {
         private final OtpRepository otpRepo;
         private final JwtUtil jwtUtil;
         private final PasswordEncoder passwordEncoder;
+        private final SmsService smsService;
 
         public AuthService(
                 UserRepository userRepo,
                 OtpRepository otpRepo,
                 JwtUtil jwtUtil,
-                PasswordEncoder passwordEncoder
+                PasswordEncoder passwordEncoder,
+                SmsService smsService
         ) {
             this.userRepo = userRepo;
             this.otpRepo = otpRepo;
             this.jwtUtil = jwtUtil;
             this.passwordEncoder = passwordEncoder;
+            this.smsService = smsService;
         }
 
         /* ======================
@@ -47,11 +50,11 @@ public class AuthService {
             otpRepo.save(new OtpToken(
                     null,
                     mobile,
-                    otp,
+                    passwordEncoder.encode(otp),   // store hashed OTP
                     LocalDateTime.now().plusMinutes(5)
             ));
 
-            System.out.println("DEV OTP: " + otp);
+            smsService.sendOtp(mobile, otp);       // send plain OTP via SMS
         }
 
         /* ======================
@@ -63,14 +66,19 @@ public class AuthService {
             String mobile = req.get("mobile");
             String otp = req.get("otp");
 
+            if (mobile == null || mobile.isBlank() || otp == null || otp.isBlank()) {
+                throw new RuntimeException("Mobile and OTP are required");
+            }
+
             OtpToken token = otpRepo.findByMobile(mobile)
                     .orElseThrow(() -> new RuntimeException("OTP not found"));
 
             if (token.getExpiry().isBefore(LocalDateTime.now())) {
+                otpRepo.deleteByMobile(mobile);     // clean up expired token
                 throw new RuntimeException("OTP expired");
             }
 
-            if (!token.getOtp().equals(otp)) {
+            if (!passwordEncoder.matches(otp, token.getOtp())) {  // compare against hash
                 throw new RuntimeException("Invalid OTP");
             }
 

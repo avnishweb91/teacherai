@@ -16,7 +16,7 @@ public class SmsService {
     @Value("${springedge.sender.id}")
     private String senderId;
 
-    private static final String SPRINGEDGE_URL = "http://api.springedge.com/api/transactional/sms/send/";
+    private static final String SPRINGEDGE_URL = "https://instantalerts.co/api/web/send";
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -33,8 +33,9 @@ public class SmsService {
     }
 
     public void sendOtp(String toMobile, String otp) {
-        // SpringEdge expects 10-digit number only (no country code)
-        String mobile = toMobile.startsWith("+91") ? toMobile.substring(3) : toMobile;
+        // SpringEdge expects 12-digit number with country code but no + (e.g. 919876543210)
+        String mobile = toMobile.startsWith("+") ? toMobile.substring(1) : toMobile;
+        if (!mobile.startsWith("91")) mobile = "91" + mobile;
 
         String message = "Your TeacherAI OTP is " + otp + ". Valid for 5 minutes. Do not share it with anyone.";
 

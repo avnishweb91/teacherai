@@ -1,42 +1,39 @@
 package com.edu.teacherai.config;
 
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.Ordered;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
 
-import java.util.List;
+import java.io.IOException;
 
-@SuppressWarnings("unused")
-@Configuration
-public class CorsConfig {
+@Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
+public class CorsConfig implements Filter {
 
-    private UrlBasedCorsConfigurationSource buildSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("*"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setMaxAge(3600L);
+    @Override
+    public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
+            throws IOException, ServletException {
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
+        HttpServletResponse response = (HttpServletResponse) res;
+        HttpServletRequest request  = (HttpServletRequest)  req;
 
-    @Bean
-    public FilterRegistrationBean<CorsFilter> corsFilterRegistration() {
-        FilterRegistrationBean<CorsFilter> bean =
-                new FilterRegistrationBean<>(new CorsFilter(buildSource()));
-        bean.setOrder(Ordered.HIGHEST_PRECEDENCE);   // runs before Spring Security (-100)
-        return bean;
-    }
+        response.setHeader("Access-Control-Allow-Origin",  "*");
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD");
+        response.setHeader("Access-Control-Allow-Headers", "*");
+        response.setHeader("Access-Control-Max-Age",       "3600");
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        return buildSource();
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            response.setStatus(HttpServletResponse.SC_OK);
+            return;
+        }
+
+        chain.doFilter(req, res);
     }
 }

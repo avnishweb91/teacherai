@@ -15,6 +15,7 @@ import AttendanceManager from "./pages/AttendanceManager";
 import ReportCard from "./pages/ReportCard";
 import NoticeGenerator from "./pages/NoticeGenerator";
 import TimetableBuilder from "./pages/TimetableBuilder";
+import UpgradePlan from "./pages/UpgradePlan";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
 
@@ -133,6 +134,16 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* UPGRADE PLAN */}
+        <Route
+          path="/upgrade"
+          element={
+            <ProtectedRoute>
+              <UpgradePlan />
             </ProtectedRoute>
           }
         />

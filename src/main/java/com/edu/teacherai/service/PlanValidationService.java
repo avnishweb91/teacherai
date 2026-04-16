@@ -3,7 +3,9 @@ package com.edu.teacherai.service;
 import com.edu.teacherai.entity.User;
 import com.edu.teacherai.plan.PlanRules;
 import com.edu.teacherai.repository.UsageRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 
@@ -28,12 +30,10 @@ public class PlanValidationService {
                 LocalDate.now()
         );
 
-        int limit = feature.equals("LESSON")
-                ? PlanRules.FREE_LESSON_LIMIT
-                : PlanRules.FREE_ASSESSMENT_LIMIT;
+        int limit = PlanRules.limitFor(feature);
 
         if (usedToday >= limit) {
-            throw new RuntimeException("PLAN_LIMIT_EXCEEDED");
+            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED, "PLAN_LIMIT_EXCEEDED");
         }
     }
 

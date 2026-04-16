@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import axios from "axios";
 import jsPDF from "jspdf";
@@ -107,7 +108,10 @@ export default function ReportCard() {
   const [generating,   setGenerating]   = useState(false);
   const [genProgress,  setGenProgress]  = useState(0);
   const [error,        setError]        = useState("");
+  const [limitHit,     setLimitHit]     = useState(false);
   const [preview,      setPreview]      = useState(null); // student being previewed
+
+  const navigate = useNavigate();
 
   /* ── add subject ── */
   const addSubject = (e) => {
@@ -164,7 +168,7 @@ export default function ReportCard() {
 
   /* ── AI generate all remarks ── */
   const generateAllRemarks = async () => {
-    setGenerating(true); setError(""); setGenProgress(0);
+    setGenerating(true); setError(""); setLimitHit(false); setGenProgress(0);
     let done = 0;
     const updated = [...students];
 
@@ -192,7 +196,13 @@ export default function ReportCard() {
         }, { headers: { Authorization: `Bearer ${token()}` } });
 
         updated[i] = { ...s, remark: res.data };
-      } catch {
+      } catch (e) {
+        if (e.response?.status === 402) {
+          setLimitHit(true);
+          setGenerating(false);
+          setStudents([...updated]);
+          return;
+        }
         updated[i] = { ...s, remark: updated[i].remark || "Unable to generate remark. Please edit manually." };
       }
 
@@ -606,6 +616,21 @@ export default function ReportCard() {
               <p style={{ fontSize:13, color:"#64748b", marginTop:6 }}>
                 Generating AI remarks… {genProgress}%
               </p>
+            </div>
+          )}
+          {limitHit && (
+            <div style={{
+              marginTop:12, padding:"16px 20px", borderRadius:12,
+              background:"#fffbeb", border:"1px solid #fcd34d",
+              display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap"
+            }}>
+              <div>
+                <div style={{ fontWeight:700, color:"#92400e" }}>Daily limit reached</div>
+                <div style={{ fontSize:13, color:"#b45309" }}>FREE plan allows 1 report card session/day. Upgrade for unlimited access.</div>
+              </div>
+              <button className="btn-primary" onClick={() => navigate("/upgrade")} style={{ whiteSpace:"nowrap" }}>
+                Upgrade to PRO
+              </button>
             </div>
           )}
           {error && <div className="alert-error" style={{ marginTop:12 }}>{error}</div>}

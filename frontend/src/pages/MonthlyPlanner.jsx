@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
+import api from "../services/api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { saveAs } from "file-saver";
@@ -96,10 +98,30 @@ export default function MonthlyPlanner() {
 
   // Generated rows
   const [rows, setRows] = useState(null);
+  const [limitHit, setLimitHit] = useState(false);
+  const [userPlan, setUserPlan] = useState(null);
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    api.get("/api/user/me").then(res => setUserPlan(res.data.planType)).catch(() => {});
+  }, []);
+
+  const checkAndCountUsage = () => {
+    if (userPlan === "PRO" || userPlan === "SCHOOL") return true;
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `usage_PLANNER_${today}`;
+    const used = parseInt(localStorage.getItem(key) || "0");
+    if (used >= 1) { setLimitHit(true); return false; }
+    localStorage.setItem(key, String(used + 1));
+    return true;
+  };
 
   /* ── Build planner ── */
   const buildPlanner = (e) => {
     e.preventDefault();
+    setLimitHit(false);
+    if (!checkAndCountUsage()) return;
     const holidayMap = {};
     for (const h of holidays) {
       if (h.day && h.name) holidayMap[parseInt(h.day)] = h.name;
@@ -361,6 +383,22 @@ export default function MonthlyPlanner() {
               📅 Build Planner
             </button>
           </div>
+
+          {limitHit && (
+            <div style={{
+              marginTop:16, padding:"16px 20px", borderRadius:12,
+              background:"#fffbeb", border:"1px solid #fcd34d",
+              display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap"
+            }}>
+              <div>
+                <div style={{ fontWeight:700, color:"#92400e" }}>Daily limit reached</div>
+                <div style={{ fontSize:13, color:"#b45309" }}>FREE plan allows 1 planner/day. Upgrade for unlimited access.</div>
+              </div>
+              <button className="btn-primary" onClick={() => navigate("/upgrade")} style={{ whiteSpace:"nowrap" }}>
+                Upgrade to PRO
+              </button>
+            </div>
+          )}
         </form>
       </div>
 

@@ -38,7 +38,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/h2-console/**", "/actuator/health").permitAll()
 
                         // 🔐 Protected endpoints
-                        .requestMatchers("/api/lesson/**", "/api/assessment/**", "/api/user/**", "/api/planner/**", "/api/reportcard/**", "/api/notice/**")
+                        .requestMatchers("/api/lesson/**", "/api/assessment/**", "/api/user/**", "/api/planner/**", "/api/reportcard/**", "/api/notice/**", "/api/payment/**")
                         .authenticated()
 
                         .anyRequest().authenticated()

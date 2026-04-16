@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import api from "../services/api";
 
@@ -10,7 +11,16 @@ export default function Profile() {
   const [error, setError]     = useState("");
   const [success, setSuccess] = useState("");
 
-  useEffect(() => { loadProfile(); }, []);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    loadProfile();
+    if (location.state?.upgraded) {
+      setSuccess("Plan upgraded successfully! Enjoy unlimited access.");
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, []);
 
   const loadProfile = async () => {
     try {
@@ -138,7 +148,18 @@ export default function Profile() {
         {/* Plan */}
         <div className="profile-row">
           <div className="profile-row-label">Plan</div>
-          <span className="badge badge-green">{user.planType}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span className="badge badge-green">{user.planType}</span>
+            {user.planType === "FREE" && (
+              <button
+                className="btn-primary"
+                onClick={() => navigate("/upgrade")}
+                style={{ padding: "4px 14px", fontSize: 13 }}
+              >
+                Upgrade
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Member since */}

@@ -50,6 +50,8 @@ public class LessonController {
                         "Teacher not found"
                 ));
 
+        planValidationService.validate(user, "LESSON");
+
         String content;
         try {
             content = service.generateLesson(req);

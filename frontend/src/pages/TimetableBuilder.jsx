@@ -1,5 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
+import api from "../services/api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -83,6 +85,24 @@ export default function TimetableBuilder() {
 
   /* editing cell id */
   const [editCell, setEditCell] = useState(null); // "day-pid"
+
+  const [limitHit, setLimitHit] = useState(false);
+  const [userPlan, setUserPlan] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    api.get("/api/user/me").then(res => setUserPlan(res.data.planType)).catch(() => {});
+  }, []);
+
+  const goToStep2 = () => {
+    if (userPlan === "PRO" || userPlan === "SCHOOL") { setStep(2); return; }
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `usage_TIMETABLE_${today}`;
+    const used = parseInt(localStorage.getItem(key) || "0");
+    if (used >= 1) { setLimitHit(true); return; }
+    localStorage.setItem(key, String(used + 1));
+    setStep(2);
+  };
 
   /* ── logo upload ── */
   const handleLogo = e => {
@@ -460,9 +480,24 @@ export default function TimetableBuilder() {
           {/* next button */}
           <div style={{ gridColumn:"1/-1" }}>
             <button className="btn-primary" style={{ padding:"12px 40px", fontSize:15 }}
-              onClick={()=>setStep(2)}>
+              onClick={goToStep2}>
               Next: Build Timetable →
             </button>
+            {limitHit && (
+              <div style={{
+                marginTop:16, padding:"16px 20px", borderRadius:12,
+                background:"#fffbeb", border:"1px solid #fcd34d",
+                display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap"
+              }}>
+                <div>
+                  <div style={{ fontWeight:700, color:"#92400e" }}>Daily limit reached</div>
+                  <div style={{ fontSize:13, color:"#b45309" }}>FREE plan allows 1 timetable/day. Upgrade for unlimited access.</div>
+                </div>
+                <button className="btn-primary" onClick={() => navigate("/upgrade")} style={{ whiteSpace:"nowrap" }}>
+                  Upgrade to PRO
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

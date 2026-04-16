@@ -34,7 +34,7 @@ public class AssessmentController {
 
         User user = userRepo.findByMobile(auth.getName()).orElseThrow();
 
-        //planValidationService.validate(user, "ASSESSMENT");
+        planValidationService.validate(user, "ASSESSMENT");
 
         String paper = assessmentAiService.generateAssessment(req);
 

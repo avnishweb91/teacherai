@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import api from "../services/api";
 
@@ -23,6 +24,9 @@ export default function AssessmentGenerator() {
   const [answerKey, setAnswerKey]       = useState("");
   const [loadingAnswer, setLoadingAnswer] = useState(false);
   const [error, setError]               = useState("");
+  const [limitHit, setLimitHit]         = useState(false);
+
+  const navigate = useNavigate();
 
   const SECTION_LABELS = ["A", "B", "C", "D", "E"];
 
@@ -45,6 +49,7 @@ export default function AssessmentGenerator() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setLimitHit(false);
     setPaper("");
     setAnswerKey("");
     if (sections.length === 0) { setError("Please add at least one section."); setLoading(false); return; }
@@ -52,8 +57,8 @@ export default function AssessmentGenerator() {
       const res = await api.post("/api/assessment/generate", { syllabus, examType, subject, grade, topic, difficulty, language, sections });
       setPaper(res.data);
     } catch (err) {
-      console.error(err);
-      setError("Failed to generate assessment. Please try again.");
+      if (err.response?.status === 402) setLimitHit(true);
+      else setError("Failed to generate assessment. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -236,6 +241,22 @@ export default function AssessmentGenerator() {
                   <button type="button" className="section-remove" onClick={() => removeSection(i)}>✕</button>
                 </div>
               ))}
+            </div>
+          )}
+
+          {limitHit && (
+            <div style={{
+              padding: "16px 20px", borderRadius: 12,
+              background: "#fffbeb", border: "1px solid #fcd34d",
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap"
+            }}>
+              <div>
+                <div style={{ fontWeight: 700, color: "#92400e" }}>Daily limit reached</div>
+                <div style={{ fontSize: 13, color: "#b45309" }}>FREE plan allows 2 assessments/day. Upgrade for unlimited access.</div>
+              </div>
+              <button className="btn-primary" onClick={() => navigate("/upgrade")} style={{ whiteSpace: "nowrap" }}>
+                Upgrade to PRO
+              </button>
             </div>
           )}
 

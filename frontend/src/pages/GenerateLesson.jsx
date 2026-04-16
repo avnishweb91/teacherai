@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import api from "../services/api";
 
@@ -13,13 +14,17 @@ export default function GenerateLesson() {
   const [loading, setLoading] = useState(false);
   const [lesson, setLesson]   = useState("");
   const [error, setError]     = useState("");
+  const [limitHit, setLimitHit] = useState(false);
   const [saved, setSaved]     = useState(false);
+
+  const navigate = useNavigate();
 
   const handleGenerate = async (e) => {
     e.preventDefault();
     setError("");
     setLesson("");
     setSaved(false);
+    setLimitHit(false);
     setLoading(true);
     try {
       const response = await api.post("/api/lesson/generate", {
@@ -27,7 +32,8 @@ export default function GenerateLesson() {
       });
       setLesson(response.data.content);
     } catch (err) {
-      if (err.response?.status === 401)      setError("Session expired. Please login again.");
+      if (err.response?.status === 402)      setLimitHit(true);
+      else if (err.response?.status === 401) setError("Session expired. Please login again.");
       else if (err.response?.status === 429) setError("AI usage limit exceeded. Try later.");
       else                                   setError("Failed to generate lesson. Please try again.");
     } finally {
@@ -121,6 +127,22 @@ export default function GenerateLesson() {
               />
             </div>
           </div>
+
+          {limitHit && (
+            <div style={{
+              marginTop: 16, padding: "16px 20px", borderRadius: 12,
+              background: "#fffbeb", border: "1px solid #fcd34d",
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap"
+            }}>
+              <div>
+                <div style={{ fontWeight: 700, color: "#92400e" }}>Daily limit reached</div>
+                <div style={{ fontSize: 13, color: "#b45309" }}>FREE plan allows 3 lesson plans/day. Upgrade for unlimited access.</div>
+              </div>
+              <button className="btn-primary" onClick={() => navigate("/upgrade")} style={{ whiteSpace: "nowrap" }}>
+                Upgrade to PRO
+              </button>
+            </div>
+          )}
 
           {error && (
             <div className="alert-error" style={{ marginTop: 16 }}>

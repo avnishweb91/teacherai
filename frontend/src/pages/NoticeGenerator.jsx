@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import axios from "axios";
 import jsPDF from "jspdf";
@@ -52,6 +53,9 @@ export default function NoticeGenerator() {
   const [noticeText,   setNoticeText]   = useState("");
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState("");
+  const [limitHit,     setLimitHit]     = useState(false);
+
+  const navigate = useNavigate();
 
   /* ── saved notices history ── */
   const [history, setHistory] = useState(() => {
@@ -62,7 +66,7 @@ export default function NoticeGenerator() {
 
   /* ── generate ── */
   const generate = async () => {
-    setLoading(true); setError(""); setNoticeText("");
+    setLoading(true); setError(""); setNoticeText(""); setLimitHit(false);
     try {
       const res = await axios.post(API, {
         schoolName, principalName: principal, teacherName,
@@ -90,7 +94,8 @@ export default function NoticeGenerator() {
       localStorage.setItem("notice_history", JSON.stringify(updated));
 
     } catch (e) {
-      setError("Failed to generate notice. Please try again.");
+      if (e.response?.status === 402) setLimitHit(true);
+      else setError("Failed to generate notice. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -353,6 +358,21 @@ export default function NoticeGenerator() {
               : "✨ Generate Notice"}
           </button>
 
+          {limitHit && (
+            <div style={{
+              marginTop:12, padding:"16px 20px", borderRadius:12,
+              background:"#fffbeb", border:"1px solid #fcd34d",
+              display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap"
+            }}>
+              <div>
+                <div style={{ fontWeight:700, color:"#92400e" }}>Daily limit reached</div>
+                <div style={{ fontSize:13, color:"#b45309" }}>FREE plan allows 2 notices/day. Upgrade for unlimited access.</div>
+              </div>
+              <button className="btn-primary" onClick={() => navigate("/upgrade")} style={{ whiteSpace:"nowrap" }}>
+                Upgrade to PRO
+              </button>
+            </div>
+          )}
           {error && <div className="alert-error" style={{ marginTop:12 }}>{error}</div>}
         </div>
 

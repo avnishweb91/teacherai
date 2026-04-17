@@ -1,16 +1,43 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
+import Walkthrough from "../components/Walkthrough";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-
   const lessons = JSON.parse(localStorage.getItem("lessons") || "[]");
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
+
+  useEffect(() => {
+    if (!localStorage.getItem("walkthrough_seen")) {
+      const t = setTimeout(() => setShowWalkthrough(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   return (
     <DashboardLayout>
-      <div className="page-header">
-        <h1 className="page-title">Welcome back 👋</h1>
-        <p className="page-subtitle">Here's what's happening with your teaching tools today.</p>
+      {showWalkthrough && <Walkthrough onFinish={() => setShowWalkthrough(false)} />}
+
+      <div className="page-header" data-tour="dashboard-header">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <h1 className="page-title">Welcome back 👋</h1>
+            <p className="page-subtitle">Here's what's happening with your teaching tools today.</p>
+          </div>
+          <button
+            onClick={() => setShowWalkthrough(true)}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "8px 16px", borderRadius: 10,
+              border: "1.5px solid #bfdbfe", background: "#eff6ff",
+              color: "#2563eb", fontWeight: 700, fontSize: 13,
+              cursor: "pointer", whiteSpace: "nowrap",
+            }}
+          >
+            🗺️ Take a Tour
+          </button>
+        </div>
       </div>
 
       {/* Stat cards */}
@@ -47,7 +74,7 @@ export default function Dashboard() {
 
       {/* Quick actions */}
       <p className="section-divider-label">Quick Actions</p>
-      <div className="action-grid">
+      <div className="action-grid" data-tour="quick-actions">
         <button className="action-card" onClick={() => navigate("/lesson")}>
           <div className="action-card-icon">📘</div>
           <div className="action-card-title">Generate Lesson Plan</div>

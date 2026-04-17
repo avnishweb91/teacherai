@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
-import Login from "./Login";
 import LoginEmail from "./LoginEmail";
 import api from "../services/api";
 import "./auth.css";
@@ -96,21 +95,13 @@ function TourModal({ onClose }) {
   return (
     <div className="tour-backdrop">
       <div className="tour-modal">
-        {/* Close */}
         <button className="tour-close" onClick={handleClose}>×</button>
-
-        {/* Slide content */}
         <div className={`tour-slide ${animating ? "tour-slide-exit" : "tour-slide-enter"}`}>
-          {/* Icon */}
           <div className="tour-icon" style={{ background: current.color + "18", border: `2px solid ${current.color}30` }}>
             <span style={{ fontSize: 40 }}>{current.icon}</span>
           </div>
-
-          {/* Text */}
           <h2 className="tour-title" style={{ color: current.color }}>{current.title}</h2>
           <p className="tour-desc">{current.desc}</p>
-
-          {/* Highlights */}
           <div className="tour-highlights">
             {current.highlights.map((h) => (
               <div key={h} className="tour-highlight-item">
@@ -120,8 +111,6 @@ function TourModal({ onClose }) {
             ))}
           </div>
         </div>
-
-        {/* Dots */}
         <div className="tour-dots">
           {TOUR_SLIDES.map((_, i) => (
             <button
@@ -132,13 +121,10 @@ function TourModal({ onClose }) {
             />
           ))}
         </div>
-
-        {/* Nav buttons */}
         <div className="tour-nav">
           <button className="tour-btn-ghost" onClick={() => handleNav(prev)} disabled={slide === 0}>
             ← Prev
           </button>
-
           {slide < total - 1 ? (
             <button className="tour-btn-primary" style={{ background: current.color }} onClick={() => handleNav(next)}>
               Next →
@@ -149,8 +135,6 @@ function TourModal({ onClose }) {
             </button>
           )}
         </div>
-
-        {/* Don't show again */}
         <div className="tour-footer">
           <label className="tour-checkbox-label">
             <input type="checkbox" checked={dontShow} onChange={e => setDontShow(e.target.checked)} />
@@ -164,7 +148,6 @@ function TourModal({ onClose }) {
 }
 
 export default function AuthPage() {
-  const [mode, setMode] = useState("EMAIL"); // EMAIL | OTP
   const [showTour, setShowTour] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState("");
@@ -184,7 +167,6 @@ export default function AuthPage() {
     setGoogleError("");
     setGoogleLoading(true);
     try {
-      // credentialResponse.credential is the Google id_token
       const res = await api.post("/api/auth/google", { idToken: credentialResponse.credential });
       localStorage.setItem("token", res.data.token);
       navigate("/dashboard", { replace: true });
@@ -198,6 +180,7 @@ export default function AuthPage() {
   return (
     <div className="auth-page">
       {showTour && <TourModal onClose={() => setShowTour(false)} />}
+
       {/* ── Left branding panel ── */}
       <div className="auth-brand">
         <div className="auth-brand-logo">🎓</div>
@@ -205,7 +188,6 @@ export default function AuthPage() {
         <p className="auth-brand-sub">
           Smart assessment &amp; lesson planning,<br />powered by AI.
         </p>
-
         <div className="auth-features">
           <div className="auth-feature-item">
             <span className="auth-feature-icon">📝</span>
@@ -229,16 +211,10 @@ export default function AuthPage() {
       {/* ── Right form panel ── */}
       <div className="auth-form-panel">
         <div className="auth-card">
-          <h2 className="auth-card-heading">
-            {mode === "EMAIL" ? "Welcome back" : "Sign in with OTP"}
-          </h2>
-          <p className="auth-card-desc">
-            {mode === "EMAIL"
-              ? "Enter your credentials to access your dashboard."
-              : "We'll send a one-time password to your mobile number."}
-          </p>
+          <h2 className="auth-card-heading">Welcome back</h2>
+          <p className="auth-card-desc">Sign in to your TeacherAI account.</p>
 
-          {/* Google Sign-In */}
+          {/* Google Sign-In — primary */}
           <div className="google-signin-wrap">
             {googleError && (
               <div className="auth-error" style={{ marginBottom: 8 }}>
@@ -263,31 +239,11 @@ export default function AuthPage() {
           </div>
 
           <div className="auth-divider">
-            <span>or sign in with</span>
+            <span>or continue with email</span>
           </div>
 
-          {/* Mode tabs */}
-          <div className="auth-tabs">
-            <button
-              className={`auth-tab ${mode === "EMAIL" ? "active" : ""}`}
-              onClick={() => setMode("EMAIL")}
-            >
-              Email Login
-            </button>
-            <button
-              className={`auth-tab ${mode === "OTP" ? "active" : ""}`}
-              onClick={() => setMode("OTP")}
-            >
-              Mobile OTP
-            </button>
-          </div>
-
-          {/* Forms */}
-          {mode === "EMAIL" ? (
-            <LoginEmail onLogin={handleLoginSuccess} onSwitchMode={() => setMode("OTP")} />
-          ) : (
-            <Login onLogin={handleLoginSuccess} onSwitchMode={() => setMode("EMAIL")} />
-          )}
+          {/* Email login / register */}
+          <LoginEmail onLogin={handleLoginSuccess} />
         </div>
       </div>
     </div>

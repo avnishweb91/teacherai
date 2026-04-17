@@ -22,6 +22,7 @@ import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -126,13 +127,24 @@ public class AuthService {
            ====================== */
     public AuthResponse register(RegisterRequest req) {
 
-        if (userRepo.findByMobile(req.getMobile()).isPresent()) {
+        // Check email uniqueness
+        if (req.getEmail() != null && !req.getEmail().isBlank()
+                && userRepo.findByEmail(req.getEmail()).isPresent()) {
+            throw new RuntimeException("Email already registered");
+        }
+
+        // Mobile is optional — generate synthetic identifier if not provided
+        String mobile = (req.getMobile() != null && !req.getMobile().isBlank())
+                ? req.getMobile()
+                : "email_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+
+        if (userRepo.findByMobile(mobile).isPresent()) {
             throw new RuntimeException("Mobile already registered");
         }
 
         User user = new User();
         user.setName(req.getName());
-        user.setMobile(req.getMobile());
+        user.setMobile(mobile);
         user.setEmail(req.getEmail());
         user.setPassword(passwordEncoder.encode(req.getPassword()));
         user.setBoardPreference(req.getBoardPreference());

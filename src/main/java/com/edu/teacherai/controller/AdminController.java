@@ -3,6 +3,7 @@ package com.edu.teacherai.controller;
 import com.edu.teacherai.entity.User;
 import com.edu.teacherai.repository.UsageRepository;
 import com.edu.teacherai.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -21,12 +22,37 @@ public class AdminController {
     private final UserRepository userRepo;
     private final UsageRepository usageRepo;
 
+    @Value("${admin.setup.secret:}")
+    private String adminSetupSecret;
+
     private static final int PRO_PRICE    = 199;
     private static final int SCHOOL_PRICE = 999;
 
     public AdminController(UserRepository userRepo, UsageRepository usageRepo) {
         this.userRepo  = userRepo;
         this.usageRepo = usageRepo;
+    }
+
+    /* ── One-time admin promotion (public endpoint, secret-gated) ── */
+    @PostMapping("/setup")
+    public Map<String, String> setupAdmin(@RequestBody Map<String, String> body) {
+        String secret = body.get("secret");
+        String mobile = body.get("mobile");
+
+        if (adminSetupSecret == null || adminSetupSecret.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Setup not configured");
+        }
+        if (!adminSetupSecret.equals(secret)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid secret");
+        }
+
+        User user = userRepo.findByMobile(mobile)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        user.setRole("ADMIN");
+        userRepo.save(user);
+
+        return Map.of("message", "User " + mobile + " promoted to ADMIN");
     }
 
     private void requireAdmin(Authentication auth) {

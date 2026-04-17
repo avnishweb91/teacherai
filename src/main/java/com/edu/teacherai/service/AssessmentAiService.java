@@ -262,8 +262,8 @@ public class AssessmentAiService {
                     .content;
 
         } catch (Exception e) {
-            log.error("OpenAI request failed", e);
-            return "AI generation failed. Please try again.";
+            log.error("OpenAI request failed: {}", e.getMessage());
+            throw new RuntimeException("OpenAI request failed: " + e.getMessage());
         }
     }
 }

@@ -1,12 +1,176 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Login from "./Login";
 import LoginEmail from "./LoginEmail";
 import "./auth.css";
 
+const TOUR_SLIDES = [
+  {
+    icon: "🎓",
+    title: "Welcome to TeacherAI",
+    desc: "Your AI-powered teaching assistant. Save hours of manual work every day with smart tools built for Indian classrooms.",
+    color: "#1e3a8a",
+    highlights: ["Works with CBSE, ICSE & Bihar Board", "Hindi & English support", "Trusted by teachers across India"],
+  },
+  {
+    icon: "📚",
+    title: "Generate Lesson Plans",
+    desc: "Create detailed, curriculum-aligned lesson plans in seconds. Just pick your class, subject and topic — AI does the rest.",
+    color: "#2563eb",
+    highlights: ["Class 1 to 12 support", "3 lesson plans/day on FREE plan", "Unlimited on PRO"],
+  },
+  {
+    icon: "📝",
+    title: "Assessment Generator",
+    desc: "Build complete question papers with sections A–E, multiple question types, marks allocation and difficulty levels.",
+    color: "#7c3aed",
+    highlights: ["MCQ, Short & Long answer types", "Auto answer key generation", "PDF download ready"],
+  },
+  {
+    icon: "📋",
+    title: "Notice & Report Cards",
+    desc: "Generate professional school circulars and AI-written personalised remarks for every student's report card.",
+    color: "#059669",
+    highlights: ["12+ notice templates", "Auto attendance sync", "Bulk PDF download for entire class"],
+  },
+  {
+    icon: "🗓️",
+    title: "Planner & Timetable",
+    desc: "Build monthly academic planners and weekly timetables with PDF, Excel and Word export in one click.",
+    color: "#d97706",
+    highlights: ["Drag & fill timetable grid", "Holiday & event support", "Export to PDF / Excel / Word"],
+  },
+  {
+    icon: "🚀",
+    title: "Ready to get started?",
+    desc: "FREE plan includes core features to try everything. Upgrade to PRO at just ₹199/month for unlimited access.",
+    color: "#dc2626",
+    highlights: ["No credit card required to start", "Upgrade anytime from your profile", "Payments via UPI, cards & net banking"],
+  },
+];
+
+function TourModal({ onClose }) {
+  const [slide, setSlide] = useState(0);
+  const [dontShow, setDontShow] = useState(false);
+  const [animating, setAnimating] = useState(false);
+  const timerRef = useRef(null);
+  const total = TOUR_SLIDES.length;
+
+  const goTo = (index) => {
+    if (animating || index === slide) return;
+    setAnimating(true);
+    setTimeout(() => {
+      setSlide(index);
+      setAnimating(false);
+    }, 220);
+  };
+
+  const next = () => goTo(slide < total - 1 ? slide + 1 : slide);
+  const prev = () => goTo(slide > 0 ? slide - 1 : slide);
+
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setSlide(s => (s < total - 1 ? s + 1 : s));
+    }, 4000);
+    return () => clearInterval(timerRef.current);
+  }, []);
+
+  const resetTimer = () => {
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setSlide(s => (s < total - 1 ? s + 1 : s));
+    }, 4000);
+  };
+
+  const handleNav = (fn) => { fn(); resetTimer(); };
+
+  const handleClose = () => {
+    if (dontShow) localStorage.setItem("tour_seen", "1");
+    onClose();
+  };
+
+  const current = TOUR_SLIDES[slide];
+
+  return (
+    <div className="tour-backdrop">
+      <div className="tour-modal">
+        {/* Close */}
+        <button className="tour-close" onClick={handleClose}>×</button>
+
+        {/* Slide content */}
+        <div className={`tour-slide ${animating ? "tour-slide-exit" : "tour-slide-enter"}`}>
+          {/* Icon */}
+          <div className="tour-icon" style={{ background: current.color + "18", border: `2px solid ${current.color}30` }}>
+            <span style={{ fontSize: 40 }}>{current.icon}</span>
+          </div>
+
+          {/* Text */}
+          <h2 className="tour-title" style={{ color: current.color }}>{current.title}</h2>
+          <p className="tour-desc">{current.desc}</p>
+
+          {/* Highlights */}
+          <div className="tour-highlights">
+            {current.highlights.map((h) => (
+              <div key={h} className="tour-highlight-item">
+                <span style={{ color: current.color, fontWeight: 800, marginRight: 8 }}>✓</span>
+                {h}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Dots */}
+        <div className="tour-dots">
+          {TOUR_SLIDES.map((_, i) => (
+            <button
+              key={i}
+              className={`tour-dot ${i === slide ? "active" : ""}`}
+              style={i === slide ? { background: current.color } : {}}
+              onClick={() => handleNav(() => goTo(i))}
+            />
+          ))}
+        </div>
+
+        {/* Nav buttons */}
+        <div className="tour-nav">
+          <button className="tour-btn-ghost" onClick={() => handleNav(prev)} disabled={slide === 0}>
+            ← Prev
+          </button>
+
+          {slide < total - 1 ? (
+            <button className="tour-btn-primary" style={{ background: current.color }} onClick={() => handleNav(next)}>
+              Next →
+            </button>
+          ) : (
+            <button className="tour-btn-primary" style={{ background: current.color }} onClick={handleClose}>
+              Get Started →
+            </button>
+          )}
+        </div>
+
+        {/* Don't show again */}
+        <div className="tour-footer">
+          <label className="tour-checkbox-label">
+            <input type="checkbox" checked={dontShow} onChange={e => setDontShow(e.target.checked)} />
+            Don't show this again
+          </label>
+          <button className="tour-skip" onClick={handleClose}>Skip tour</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AuthPage() {
   const [mode, setMode] = useState("EMAIL"); // EMAIL | OTP
+  const [showTour, setShowTour] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!localStorage.getItem("tour_seen")) {
+      setShowTour(true);
+    }
+  }, []);
 
   const handleLoginSuccess = () => {
     navigate("/dashboard", { replace: true });
@@ -14,6 +178,7 @@ export default function AuthPage() {
 
   return (
     <div className="auth-page">
+      {showTour && <TourModal onClose={() => setShowTour(false)} />}
       {/* ── Left branding panel ── */}
       <div className="auth-brand">
         <div className="auth-brand-logo">🎓</div>

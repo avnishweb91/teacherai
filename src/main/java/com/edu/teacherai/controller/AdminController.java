@@ -60,7 +60,8 @@ public class AdminController {
         user.setRole("ADMIN");
         userRepo.save(user);
 
-        return Map.of("message", "User " + mobile + " promoted to ADMIN");
+        String identifier = user.getEmail() != null ? user.getEmail() : user.getMobile();
+        return Map.of("message", "User " + identifier + " promoted to ADMIN");
     }
 
     private void requireAdmin(Authentication auth) {

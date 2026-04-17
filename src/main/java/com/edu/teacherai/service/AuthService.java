@@ -8,10 +8,17 @@ import com.edu.teacherai.entity.OtpToken;
 import com.edu.teacherai.entity.User;
 import com.edu.teacherai.repository.OtpRepository;
 import com.edu.teacherai.repository.UserRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Random;
@@ -25,6 +32,9 @@ public class AuthService {
         private final PasswordEncoder passwordEncoder;
         private final SmsService smsService;
         private final EmailService emailService;
+
+        @Value("${google.client.id:}")
+        private String googleClientId;
 
         public AuthService(
                 UserRepository userRepo,
@@ -158,12 +168,72 @@ public class AuthService {
 
         String jwt = jwtUtil.generateToken(user.getMobile(), user.getRole());
 
+        return new AuthResponse(jwt, user, "LOGIN");
+    }
 
-        return new AuthResponse(
-                jwt,
-                user,
-                "LOGIN"   // ✅ IMPORTANT
-        );
+
+    /* ======================
+           GOOGLE LOGIN
+           ====================== */
+    @Transactional
+    public AuthResponse googleLogin(String idToken) {
+
+        // 1. Verify id_token with Google's tokeninfo endpoint
+        JsonNode payload;
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken))
+                    .GET()
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new RuntimeException("Invalid Google token");
+            }
+            payload = new ObjectMapper().readTree(response.body());
+        } catch (Exception e) {
+            throw new RuntimeException("Google token verification failed: " + e.getMessage());
+        }
+
+        // 2. Validate audience matches our client ID (security check)
+        if (!googleClientId.isBlank()) {
+            String aud = payload.path("aud").asText("");
+            if (!googleClientId.equals(aud)) {
+                throw new RuntimeException("Token audience mismatch");
+            }
+        }
+
+        // 3. Extract user info
+        String email = payload.path("email").asText();
+        String name  = payload.path("name").asText("Teacher");
+        String sub   = payload.path("sub").asText(); // unique Google user ID
+
+        if (email == null || email.isBlank()) {
+            throw new RuntimeException("Email not available from Google");
+        }
+
+        // 4. Find existing user by email, or create new one
+        User user = userRepo.findByEmail(email).orElse(null);
+
+        boolean isNew = false;
+        if (user == null) {
+            // New user — create account (mobile = synthetic google_<sub>)
+            user = new User();
+            user.setName(name);
+            user.setEmail(email);
+            user.setMobile("google_" + sub);   // synthetic unique mobile
+            user.setRole("TEACHER");
+            user.setPlanType("FREE");
+            userRepo.save(user);
+            isNew = true;
+        }
+
+        if (isNew) {
+            emailService.sendWelcome(user.getEmail(), user.getName());
+        }
+
+        String jwt = jwtUtil.generateToken(user.getMobile(), user.getRole());
+        return new AuthResponse(jwt, user, "LOGIN");
     }
 
 

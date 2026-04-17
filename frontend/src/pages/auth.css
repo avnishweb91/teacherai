@@ -707,3 +707,44 @@
   .tour-title { font-size: 19px; }
   .tour-desc  { font-size: 13.5px; }
 }
+
+/* ── Google Sign-In ─────────────────────────────────────────── */
+.google-signin-wrap {
+  margin-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.google-signin-wrap > div {
+  width: 100% !important;
+}
+
+.google-signin-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  padding: 10px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 12px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+.auth-divider span {
+  white-space: nowrap;
+}

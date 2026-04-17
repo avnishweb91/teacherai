@@ -70,6 +70,19 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    /* =========================
+       GOOGLE OAUTH LOGIN
+       ========================= */
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleLogin(@RequestBody Map<String, String> req) {
+        String idToken = req.get("idToken");
+        if (idToken == null || idToken.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        AuthResponse response = authService.googleLogin(idToken);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
         return ResponseEntity.ok(Map.of("status", "ok"));

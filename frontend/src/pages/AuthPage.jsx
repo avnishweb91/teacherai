@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 import Login from "./Login";
 import LoginEmail from "./LoginEmail";
+import api from "../services/api";
 import "./auth.css";
 
 const TOUR_SLIDES = [
@@ -164,6 +166,8 @@ function TourModal({ onClose }) {
 export default function AuthPage() {
   const [mode, setMode] = useState("EMAIL"); // EMAIL | OTP
   const [showTour, setShowTour] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -174,6 +178,21 @@ export default function AuthPage() {
 
   const handleLoginSuccess = () => {
     navigate("/dashboard", { replace: true });
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setGoogleError("");
+    setGoogleLoading(true);
+    try {
+      // credentialResponse.credential is the Google id_token
+      const res = await api.post("/api/auth/google", { idToken: credentialResponse.credential });
+      localStorage.setItem("token", res.data.token);
+      navigate("/dashboard", { replace: true });
+    } catch {
+      setGoogleError("Google sign-in failed. Please try again.");
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -218,6 +237,34 @@ export default function AuthPage() {
               ? "Enter your credentials to access your dashboard."
               : "We'll send a one-time password to your mobile number."}
           </p>
+
+          {/* Google Sign-In */}
+          <div className="google-signin-wrap">
+            {googleError && (
+              <div className="auth-error" style={{ marginBottom: 8 }}>
+                <span>⚠️</span> {googleError}
+              </div>
+            )}
+            {googleLoading ? (
+              <div className="google-signin-loading">
+                <span className="auth-spinner" /> Signing in with Google…
+              </div>
+            ) : (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setGoogleError("Google sign-in was cancelled or failed.")}
+                width="100%"
+                text="continue_with"
+                shape="rectangular"
+                theme="outline"
+                logo_alignment="left"
+              />
+            )}
+          </div>
+
+          <div className="auth-divider">
+            <span>or sign in with</span>
+          </div>
 
           {/* Mode tabs */}
           <div className="auth-tabs">

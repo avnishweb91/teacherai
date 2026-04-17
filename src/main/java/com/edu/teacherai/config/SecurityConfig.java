@@ -37,6 +37,9 @@ public class SecurityConfig {
                         // ✅ Public endpoints
                         .requestMatchers("/api/auth/**", "/h2-console/**", "/actuator/health").permitAll()
 
+                        // 🔒 Admin only
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
                         // 🔐 Protected endpoints
                         .requestMatchers("/api/lesson/**", "/api/assessment/**", "/api/user/**", "/api/planner/**", "/api/reportcard/**", "/api/notice/**", "/api/payment/**")
                         .authenticated()

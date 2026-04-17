@@ -6,6 +6,7 @@ import com.razorpay.RazorpayException;
 import com.razorpay.Utils;
 import com.edu.teacherai.entity.User;
 import com.edu.teacherai.repository.UserRepository;
+import com.edu.teacherai.service.EmailService;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,7 @@ public class PaymentController {
     private String keySecret;
 
     private final UserRepository userRepo;
+    private final EmailService emailService;
 
     // plan → amount in paise (INR * 100)
     private static final Map<String, Integer> PLAN_AMOUNTS = Map.of(
@@ -43,8 +45,9 @@ public class PaymentController {
         "SCHOOL_MONTHLY","SCHOOL"
     );
 
-    public PaymentController(UserRepository userRepo) {
+    public PaymentController(UserRepository userRepo, EmailService emailService) {
         this.userRepo = userRepo;
+        this.emailService = emailService;
     }
 
     /* ── Create Razorpay Order ── */
@@ -124,6 +127,11 @@ public class PaymentController {
 
         user.setPlanType(newPlanType);
         userRepo.save(user);
+
+        emailService.sendPaymentReceipt(
+            user.getEmail(), user.getName(),
+            newPlanType, PLAN_AMOUNTS.get(planKey)
+        );
 
         return ResponseEntity.ok(Map.of(
             "success", true,

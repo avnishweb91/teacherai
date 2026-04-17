@@ -1,5 +1,13 @@
 import { NavLink } from "react-router-dom";
 
+function getRoleFromToken() {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    return JSON.parse(atob(token.split(".")[1])).role;
+  } catch { return null; }
+}
+
 const NAV_ITEMS = [
   { to: "/dashboard",  icon: "🏠", label: "Dashboard",              tour: null },
   { to: "/lesson",     icon: "📘", label: "Generate Lesson",        tour: "nav-lesson" },
@@ -14,6 +22,8 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ open, onClose }) {
+  const isAdmin = getRoleFromToken() === "ADMIN";
+
   return (
     <aside className={`dash-sidebar ${open ? "open" : ""}`}>
       <div className="dash-sidebar-logo">
@@ -35,6 +45,20 @@ export default function Sidebar({ open, onClose }) {
           </NavLink>
         ))}
       </nav>
+
+      {isAdmin && (
+        <div style={{ padding: "8px 16px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+          <NavLink
+            to="/admin"
+            className={({ isActive }) => `dash-nav-item ${isActive ? "active" : ""}`}
+            onClick={onClose}
+            style={{ background: "rgba(239,68,68,0.15)", color: "#fca5a5" }}
+          >
+            <span className="dash-nav-icon">🛡️</span>
+            Admin Panel
+          </NavLink>
+        </div>
+      )}
 
       <div className="dash-sidebar-footer">© 2025 TeacherAI</div>
     </aside>

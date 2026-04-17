@@ -16,6 +16,7 @@ import ReportCard from "./pages/ReportCard";
 import NoticeGenerator from "./pages/NoticeGenerator";
 import TimetableBuilder from "./pages/TimetableBuilder";
 import UpgradePlan from "./pages/UpgradePlan";
+import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
 
@@ -144,6 +145,16 @@ export default function App() {
           element={
             <ProtectedRoute>
               <UpgradePlan />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ADMIN */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />

@@ -24,19 +24,22 @@ public class AuthService {
         private final JwtUtil jwtUtil;
         private final PasswordEncoder passwordEncoder;
         private final SmsService smsService;
+        private final EmailService emailService;
 
         public AuthService(
                 UserRepository userRepo,
                 OtpRepository otpRepo,
                 JwtUtil jwtUtil,
                 PasswordEncoder passwordEncoder,
-                SmsService smsService
+                SmsService smsService,
+                EmailService emailService
         ) {
             this.userRepo = userRepo;
             this.otpRepo = otpRepo;
             this.jwtUtil = jwtUtil;
             this.passwordEncoder = passwordEncoder;
             this.smsService = smsService;
+            this.emailService = emailService;
         }
 
         /* ======================
@@ -127,6 +130,8 @@ public class AuthService {
         user.setPlanType("FREE");
 
         userRepo.save(user);
+
+        emailService.sendWelcome(user.getEmail(), user.getName());
 
         String jwt = jwtUtil.generateToken(user.getMobile(), user.getRole());
 

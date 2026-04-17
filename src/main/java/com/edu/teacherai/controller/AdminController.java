@@ -37,6 +37,7 @@ public class AdminController {
     @PostMapping("/setup")
     public Map<String, String> setupAdmin(@RequestBody Map<String, String> body) {
         String secret = body.get("secret");
+        String email  = body.get("email");
         String mobile = body.get("mobile");
 
         if (adminSetupSecret == null || adminSetupSecret.isBlank()) {
@@ -46,8 +47,15 @@ public class AdminController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid secret");
         }
 
-        User user = userRepo.findByMobile(mobile)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        // Prefer email lookup, fall back to mobile
+        User user;
+        if (email != null && !email.isBlank()) {
+            user = userRepo.findByEmail(email)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        } else {
+            user = userRepo.findByMobile(mobile)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        }
 
         user.setRole("ADMIN");
         userRepo.save(user);

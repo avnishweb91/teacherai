@@ -20,7 +20,7 @@ public class PlanValidationService {
 
     public void validate(User user, String feature) {
 
-        if (PlanRules.isUnlimited(user.getPlanType())) {
+        if ("ADMIN".equals(user.getRole()) || PlanRules.isUnlimited(user.getPlanType())) {
             return;
         }
 

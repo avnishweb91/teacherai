@@ -146,6 +146,24 @@ export default function Dashboard() {
           </div>
           <div className="action-card-arrow">Build timetable →</div>
         </button>
+
+        <button className="action-card" onClick={() => navigate("/worksheet")}>
+          <div className="action-card-icon">📋</div>
+          <div className="action-card-title">Worksheet Generator</div>
+          <div className="action-card-desc">
+            Generate printable practice worksheets with fill-in-the-blanks, MCQ, match the following and more — with answer keys included.
+          </div>
+          <div className="action-card-arrow">Create worksheet →</div>
+        </button>
+
+        <button className="action-card" onClick={() => navigate("/doubt")}>
+          <div className="action-card-icon">💡</div>
+          <div className="action-card-title">Doubt Solver</div>
+          <div className="action-card-desc">
+            Ask any subject question and get a clear, structured explanation with examples — so you can teach with confidence.
+          </div>
+          <div className="action-card-arrow">Ask a doubt →</div>
+        </button>
       </div>
     </DashboardLayout>
   );

@@ -18,6 +18,8 @@ const NAV_ITEMS = [
   { to: "/report-card",icon: "📄", label: "Report Cards",           tour: "nav-report-card" },
   { to: "/notice",     icon: "📢", label: "Notice / Circular",      tour: "nav-notice" },
   { to: "/timetable",  icon: "🗓️", label: "Timetable Builder",      tour: null },
+  { to: "/worksheet",  icon: "📋", label: "Worksheet Generator",    tour: null },
+  { to: "/doubt",      icon: "💡", label: "Doubt Solver",           tour: null },
   { to: "/profile",    icon: "👤", label: "Profile",                tour: "nav-profile" },
 ];
 

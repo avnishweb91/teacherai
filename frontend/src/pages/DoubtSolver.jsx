@@ -1,0 +1,176 @@
+import { useState, useRef, useEffect } from "react";
+import DashboardLayout from "../layout/DashboardLayout";
+import api from "../services/api";
+
+export default function DoubtSolver() {
+  const [subject, setSubject]   = useState("");
+  const [grade, setGrade]       = useState("");
+  const [language, setLanguage] = useState("English");
+  const [question, setQuestion] = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
+  const [limitHit, setLimitHit] = useState(false);
+  const [history, setHistory]   = useState([]); // [{question, answer}]
+
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [history, loading]);
+
+  const handleAsk = async (e) => {
+    e.preventDefault();
+    if (!question.trim()) return;
+    setError("");
+    setLimitHit(false);
+    const asked = question.trim();
+    setQuestion("");
+    setLoading(true);
+    setHistory((prev) => [...prev, { question: asked, answer: null }]);
+    try {
+      const res = await api.post("/api/doubt/solve", { subject, grade, language, question: asked });
+      setHistory((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1].answer = res.data;
+        return updated;
+      });
+    } catch (err) {
+      if (err.response?.status === 402) {
+        setLimitHit(true);
+        setHistory((prev) => prev.slice(0, -1));
+      } else {
+        setHistory((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1].answer = "❌ Failed to get an answer. Please try again.";
+          return updated;
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="page-header">
+        <h1 className="page-title">Doubt Solver</h1>
+        <p className="page-subtitle">Ask any subject question and get a clear explanation to help you teach better.</p>
+      </div>
+
+      {/* Context bar */}
+      <div className="card" style={{ maxWidth: 760, marginBottom: 16 }}>
+        <div className="form-grid" style={{ marginBottom: 0 }}>
+          <div className="form-field">
+            <label className="form-label">Subject</label>
+            <input
+              className="form-input"
+              placeholder="e.g. Mathematics, Science"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Class Level</label>
+            <select className="form-select" value={grade} onChange={(e) => setGrade(e.target.value)}>
+              <option value="">Any level</option>
+              {[...Array(12)].map((_, i) => (
+                <option key={i + 1} value={i + 1}>Class {i + 1}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label className="form-label">Language</label>
+            <select className="form-select" value={language} onChange={(e) => setLanguage(e.target.value)}>
+              <option>English</option>
+              <option>Hindi</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Chat history */}
+      {history.length > 0 && (
+        <div style={{ maxWidth: 760, marginBottom: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+          {history.map((item, i) => (
+            <div key={i}>
+              {/* Question bubble */}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+                <div style={{
+                  maxWidth: "80%", padding: "12px 16px", borderRadius: "16px 16px 4px 16px",
+                  background: "#2563eb", color: "#fff", fontSize: 14, lineHeight: 1.6,
+                }}>
+                  {item.question}
+                </div>
+              </div>
+              {/* Answer bubble */}
+              <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                <div style={{
+                  maxWidth: "90%", padding: "16px 20px", borderRadius: "16px 16px 16px 4px",
+                  background: "#f8fafc", border: "1px solid #e2e8f0", fontSize: 14, lineHeight: 1.8,
+                  whiteSpace: "pre-wrap",
+                }}>
+                  {item.answer === null ? (
+                    <span style={{ color: "#94a3b8", display: "flex", alignItems: "center", gap: 8 }}>
+                      <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                      Thinking…
+                    </span>
+                  ) : item.answer}
+                </div>
+              </div>
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
+      )}
+
+      {limitHit && (
+        <div style={{
+          maxWidth: 760, marginBottom: 16, padding: "16px 20px", borderRadius: 12,
+          background: "#fffbeb", border: "1px solid #fcd34d",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
+        }}>
+          <div>
+            <div style={{ fontWeight: 700, color: "#92400e" }}>Daily limit reached</div>
+            <div style={{ fontSize: 13, color: "#b45309" }}>FREE plan allows 5 questions/day. Upgrade for unlimited access.</div>
+          </div>
+          <a href="/upgrade" className="btn-primary" style={{ whiteSpace: "nowrap", textDecoration: "none" }}>
+            Upgrade to PRO
+          </a>
+        </div>
+      )}
+
+      {/* Input box */}
+      <div style={{ maxWidth: 760 }}>
+        <form onSubmit={handleAsk} style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+          <textarea
+            className="form-input"
+            style={{ flex: 1, resize: "vertical", minHeight: 56, maxHeight: 160, lineHeight: 1.6, padding: "14px 16px" }}
+            placeholder="Type your question here… e.g. Why does ice float on water? How does photosynthesis work?"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAsk(e); }
+            }}
+            disabled={loading}
+          />
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={loading || !question.trim()}
+            style={{ padding: "14px 22px", whiteSpace: "nowrap", flexShrink: 0 }}
+          >
+            {loading ? <span className="spinner" /> : "Ask ✦"}
+          </button>
+        </form>
+        {error && (
+          <div className="alert-error" style={{ marginTop: 10 }}>
+            <span>⚠️</span> {error}
+          </div>
+        )}
+        <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 8 }}>
+          Press Enter to send · Shift+Enter for new line
+        </p>
+      </div>
+    </DashboardLayout>
+  );
+}

@@ -21,6 +21,8 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import WorksheetGenerator from "./pages/WorksheetGenerator";
+import DoubtSolver from "./pages/DoubtSolver";
 
 export default function App() {
   const isLoggedIn = !!localStorage.getItem("token");
@@ -160,6 +162,12 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* WORKSHEET */}
+        <Route path="/worksheet" element={<ProtectedRoute><WorksheetGenerator /></ProtectedRoute>} />
+
+        {/* DOUBT SOLVER */}
+        <Route path="/doubt" element={<ProtectedRoute><DoubtSolver /></ProtectedRoute>} />
 
         {/* PUBLIC LEGAL PAGES */}
         <Route path="/privacy" element={<PrivacyPolicy />} />

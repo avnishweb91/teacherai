@@ -53,7 +53,9 @@ export default function SchoolAdminDashboard() {
     </DashboardLayout>
   );
 
-  const { school, teachers, teacherCount, totalUsage, usageByFeature } = data;
+  const { school, teachers, teacherCount, totalUsage, usageByFeature, weeklyActivity, activeThisWeek } = data;
+  const weekDays = Object.entries(weeklyActivity || {});
+  const weekMax  = Math.max(...weekDays.map(([, v]) => v), 1);
 
   return (
     <DashboardLayout>
@@ -79,6 +81,40 @@ export default function SchoolAdminDashboard() {
         <div className="stat-card">
           <div className="stat-icon amber">📝</div>
           <div><div className="stat-value">{usageByFeature["ASSESSMENT"] || 0}</div><div className="stat-label">Assessments</div></div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon green">🟢</div>
+          <div><div className="stat-value">{activeThisWeek || 0}</div><div className="stat-label">Active This Week</div></div>
+        </div>
+      </div>
+
+      {/* Weekly activity chart */}
+      <div className="card" style={{ maxWidth: 900, marginBottom: 20 }}>
+        <p style={{ fontWeight: 700, color: "#0f172a", fontSize: 15, marginBottom: 16 }}>
+          AI Generations — Last 7 Days
+        </p>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 100 }}>
+          {weekDays.map(([date, count]) => {
+            const pct = Math.round((count / weekMax) * 100);
+            const d = new Date(date + "T00:00:00");
+            const label = d.toLocaleDateString("en-IN", { weekday: "short" });
+            const isToday = date === new Date().toISOString().slice(0, 10);
+            return (
+              <div key={date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>{count > 0 ? count : ""}</span>
+                <div style={{ width: "100%", background: "#e2e8f0", borderRadius: 6, overflow: "hidden", height: 64 }}>
+                  <div style={{
+                    width: "100%", height: `${pct}%`, marginTop: `${100 - pct}%`,
+                    background: isToday ? "linear-gradient(180deg,#2563eb,#7c3aed)" : "#93c5fd",
+                    borderRadius: 6, transition: "height 0.4s",
+                  }} />
+                </div>
+                <span style={{ fontSize: 10, color: isToday ? "#2563eb" : "#94a3b8", fontWeight: isToday ? 700 : 400 }}>
+                  {label}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -137,18 +173,31 @@ export default function SchoolAdminDashboard() {
             </div>
           </div>
 
-          {/* Usage by feature */}
+          {/* Usage by feature — horizontal bars */}
           {Object.keys(usageByFeature).length > 0 && (
             <>
-              <p style={{ fontWeight: 700, color: "#0f172a", fontSize: 13, marginTop: 20, marginBottom: 10 }}>Usage by Feature</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {Object.entries(usageByFeature).map(([k, v]) => (
-                  <div key={k} style={{ background: "#f1f5f9", borderRadius: 8, padding: "6px 12px", fontSize: 12 }}>
-                    <span style={{ color: "#64748b" }}>{FEATURE_LABELS[k] || k}</span>
-                    <span style={{ fontWeight: 700, color: "#0f172a", marginLeft: 6 }}>{v}</span>
-                  </div>
-                ))}
-              </div>
+              <p style={{ fontWeight: 700, color: "#0f172a", fontSize: 13, marginTop: 20, marginBottom: 12 }}>Usage by Feature</p>
+              {(() => {
+                const maxVal = Math.max(...Object.values(usageByFeature), 1);
+                return Object.entries(usageByFeature)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([k, v]) => (
+                    <div key={k} style={{ marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                        <span style={{ color: "#64748b" }}>{FEATURE_LABELS[k] || k}</span>
+                        <span style={{ fontWeight: 700, color: "#0f172a" }}>{v}</span>
+                      </div>
+                      <div style={{ background: "#e2e8f0", borderRadius: 99, height: 6 }}>
+                        <div style={{
+                          background: "linear-gradient(90deg,#2563eb,#7c3aed)",
+                          borderRadius: 99, height: 6,
+                          width: `${Math.round((v / maxVal) * 100)}%`,
+                          transition: "width 0.5s",
+                        }} />
+                      </div>
+                    </div>
+                  ));
+              })()}
             </>
           )}
         </div>

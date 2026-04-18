@@ -58,6 +58,23 @@ public class EmailService {
         }
     }
 
+    @Async
+    public void sendPasswordReset(String toEmail, String name, String resetLink) {
+        if (toEmail == null || toEmail.isBlank()) return;
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper h = new MimeMessageHelper(msg, true, "UTF-8");
+            h.setFrom(from);
+            h.setTo(toEmail);
+            h.setSubject("Reset your SmartBoard password");
+            h.setText(buildPasswordResetHtml(name, resetLink), true);
+            mailSender.send(msg);
+            log.info("Password reset email sent to {}", toEmail);
+        } catch (Exception e) {
+            log.warn("Failed to send password reset email to {}: {}", toEmail, e.getMessage());
+        }
+    }
+
     /* ── Email templates ── */
 
     private String buildWelcomeHtml(String name) {
@@ -89,6 +106,31 @@ public class EmailService {
               </div>
             </div>
             """.formatted(name != null ? name : "Teacher");
+    }
+
+    private String buildPasswordResetHtml(String name, String resetLink) {
+        return """
+            <div style="font-family:sans-serif;max-width:560px;margin:auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
+              <div style="background:linear-gradient(135deg,#1e3a8a,#7c3aed);padding:32px 36px;text-align:center">
+                <div style="font-size:40px">🔐</div>
+                <h1 style="color:#fff;margin:12px 0 4px;font-size:22px">Reset Your Password</h1>
+                <p style="color:rgba(255,255,255,0.8);margin:0;font-size:15px">SmartBoard AI</p>
+              </div>
+              <div style="padding:32px 36px">
+                <p style="font-size:16px;color:#1e293b">Hi <strong>%s</strong>,</p>
+                <p style="color:#475569;line-height:1.7">We received a request to reset your password. Click the button below to set a new password. This link is valid for <strong>1 hour</strong>.</p>
+                <div style="text-align:center;margin:28px 0">
+                  <a href="%s" style="background:#2563eb;color:#fff;padding:13px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">
+                    Reset Password →
+                  </a>
+                </div>
+                <p style="color:#94a3b8;font-size:13px">If you didn't request this, you can safely ignore this email. Your password won't change.</p>
+              </div>
+              <div style="background:#f8fafc;padding:16px 36px;text-align:center;font-size:12px;color:#94a3b8">
+                © 2025 SmartBoard AI · smartboard.co.in
+              </div>
+            </div>
+            """.formatted(name != null ? name : "Teacher", resetLink);
     }
 
     private String buildReceiptHtml(String name, String plan, int amountPaise) {

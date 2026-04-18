@@ -28,6 +28,7 @@ import SyllabusTracker from "./pages/SyllabusTracker";
 import ExamSchedule from "./pages/ExamSchedule";
 import HomeworkTracker from "./pages/HomeworkTracker";
 import ParentPortal from "./pages/ParentPortal";
+import ResetPassword from "./pages/ResetPassword";
 
 function getRoleFromToken() {
   try {
@@ -197,6 +198,9 @@ export default function App() {
 
         {/* DOUBT SOLVER */}
         <Route path="/doubt" element={<ProtectedRoute><DoubtSolver /></ProtectedRoute>} />
+
+        {/* RESET PASSWORD */}
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* PUBLIC LEGAL PAGES */}
         <Route path="/privacy" element={<PrivacyPolicy />} />

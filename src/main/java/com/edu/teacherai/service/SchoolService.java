@@ -12,7 +12,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -108,6 +111,20 @@ public class SchoolService {
         )).toList());
         result.put("totalUsage", totalUsage);
         result.put("usageByFeature", usageByFeature);
+
+        // Weekly activity — last 7 days
+        Map<String, Long> weeklyActivity = new LinkedHashMap<>();
+        LocalDate today = LocalDate.now();
+        for (int i = 6; i >= 0; i--) weeklyActivity.put(today.minusDays(i).toString(), 0L);
+        if (!teacherIds.isEmpty()) {
+            usageRepo.findDailyTotalsForUsers(teacherIds, today.minusDays(6))
+                    .forEach(row -> weeklyActivity.put(row[0].toString(), (Long) row[1]));
+        }
+        result.put("weeklyActivity", weeklyActivity);
+
+        long activeThisWeek = teacherIds.isEmpty() ? 0
+                : usageRepo.countActiveUsersForUsersSince(teacherIds, today.minusDays(6));
+        result.put("activeThisWeek", activeThisWeek);
 
         return result;
     }

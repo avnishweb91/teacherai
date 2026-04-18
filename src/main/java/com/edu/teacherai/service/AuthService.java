@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.beans.factory.annotation.Value;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -37,6 +38,9 @@ public class AuthService {
 
         @Value("${google.client.id:}")
         private String googleClientId;
+
+        @Value("${app.frontend.url:https://smartboard.co.in}")
+        private String frontendUrl;
 
         public AuthService(
                 UserRepository userRepo,
@@ -197,6 +201,47 @@ public class AuthService {
         return new AuthResponse(jwt, user, "LOGIN");
     }
 
+
+    /* ======================
+           FORGOT PASSWORD
+           ====================== */
+    public void forgotPassword(String email) {
+        User user = userRepo.findByEmail(email).orElse(null);
+        // Always return success to avoid email enumeration
+        if (user == null || user.getPassword() == null) return;
+
+        String token = UUID.randomUUID().toString();
+        user.setResetToken(token);
+        user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
+        userRepo.save(user);
+
+        String link = frontendUrl + "/reset-password?token=" + token;
+        emailService.sendPasswordReset(user.getEmail(), user.getName(), link);
+    }
+
+    /* ======================
+           RESET PASSWORD
+           ====================== */
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        if (token == null || token.isBlank()) throw new RuntimeException("Invalid token");
+        if (newPassword == null || newPassword.length() < 6) throw new RuntimeException("Password must be at least 6 characters");
+
+        User user = userRepo.findByResetToken(token)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired reset link"));
+
+        if (user.getResetTokenExpiry() == null || user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            user.setResetToken(null);
+            user.setResetTokenExpiry(null);
+            userRepo.save(user);
+            throw new RuntimeException("Reset link has expired. Please request a new one.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+        userRepo.save(user);
+    }
 
     /* ======================
            GOOGLE LOGIN

@@ -83,6 +83,26 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody Map<String, String> req) {
+        String email = req.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
+        }
+        authService.forgotPassword(email.trim().toLowerCase());
+        return ResponseEntity.ok(Map.of("message", "If this email is registered, a reset link has been sent."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@RequestBody Map<String, String> req) {
+        try {
+            authService.resetPassword(req.get("token"), req.get("password"));
+            return ResponseEntity.ok(Map.of("message", "Password reset successfully."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
         return ResponseEntity.ok(Map.of("status", "ok"));

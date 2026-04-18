@@ -23,4 +23,13 @@ public interface UsageRepository extends JpaRepository<UsageLog, Long> {
            "GROUP BY u.feature, u.usageDate " +
            "ORDER BY u.usageDate ASC")
     List<Object[]> findDailyUsageSince(@Param("from") LocalDate from);
+
+    @Query("SELECT u.usageDate, COUNT(u) FROM UsageLog u " +
+           "WHERE u.userId IN :userIds AND u.usageDate >= :from " +
+           "GROUP BY u.usageDate ORDER BY u.usageDate ASC")
+    List<Object[]> findDailyTotalsForUsers(@Param("userIds") List<Long> userIds, @Param("from") LocalDate from);
+
+    @Query("SELECT COUNT(DISTINCT u.userId) FROM UsageLog u " +
+           "WHERE u.userId IN :userIds AND u.usageDate >= :from")
+    long countActiveUsersForUsersSince(@Param("userIds") List<Long> userIds, @Param("from") LocalDate from);
 }

@@ -18,10 +18,29 @@ export default function LoginEmail({ onLogin }) {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
 
   const switchMode = (m) => {
     setMode(m);
     setError("");
+    setForgotMode(false);
+    setForgotSent(false);
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      await api.post("/api/auth/forgot-password", { email: forgotEmail.trim() });
+      setForgotSent(true);
+    } catch {
+      setForgotSent(true); // always show success to avoid email enumeration
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* ── Login ── */
@@ -191,6 +210,44 @@ export default function LoginEmail({ onLogin }) {
     );
   }
 
+  /* ── Forgot password view ── */
+  if (forgotMode) {
+    if (forgotSent) {
+      return (
+        <div style={{ textAlign: "center", padding: "8px 0" }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>📧</div>
+          <p style={{ fontWeight: 700, color: "#16a34a", marginBottom: 6 }}>Check your email</p>
+          <p style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>
+            If <strong>{forgotEmail}</strong> is registered, we've sent a password reset link. Check your inbox (and spam folder).
+          </p>
+          <button type="button" className="auth-link" onClick={() => { setForgotMode(false); setForgotSent(false); }}>
+            ← Back to login
+          </button>
+        </div>
+      );
+    }
+    return (
+      <form onSubmit={handleForgotPassword} noValidate>
+        <p style={{ fontSize: 14, color: "#64748b", marginBottom: 16 }}>
+          Enter your registered email and we'll send you a reset link.
+        </p>
+        {error && <div className="auth-error"><span>⚠️</span> {error}</div>}
+        <div className="auth-field">
+          <label className="auth-label">Email address</label>
+          <input className="auth-input" type="email" placeholder="you@school.edu"
+            value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} required autoComplete="email" />
+        </div>
+        <button type="submit" className="auth-btn" disabled={loading || !forgotEmail}>
+          {loading && <span className="auth-spinner" />}
+          {loading ? "Sending…" : "Send Reset Link"}
+        </button>
+        <p className="auth-footer">
+          <button type="button" className="auth-link" onClick={() => setForgotMode(false)}>← Back to login</button>
+        </p>
+      </form>
+    );
+  }
+
   return (
     <form onSubmit={handleLogin} noValidate>
       {error && (
@@ -214,7 +271,15 @@ export default function LoginEmail({ onLogin }) {
       </div>
 
       <div className="auth-field">
-        <label className="auth-label" htmlFor="password">Password</label>
+        <label className="auth-label" htmlFor="password">
+          Password
+          <button type="button"
+            onClick={() => { setForgotEmail(email); setForgotMode(true); setError(""); }}
+            style={{ float: "right", background: "none", border: "none", color: "#2563eb",
+              fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0 }}>
+            Forgot password?
+          </button>
+        </label>
         <div className="auth-pass-wrap">
           <input
             id="password"

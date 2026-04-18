@@ -19,6 +19,8 @@ import UpgradePlan from "./pages/UpgradePlan";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 
 export default function App() {
   const isLoggedIn = !!localStorage.getItem("token");
@@ -158,6 +160,10 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* PUBLIC LEGAL PAGES */}
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
 
         {/* FALLBACK */}
         <Route

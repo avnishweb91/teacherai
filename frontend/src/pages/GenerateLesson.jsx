@@ -3,13 +3,42 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import api from "../services/api";
 
+const SUBJECTS_BY_GRADE = {
+  UKG: ["English (Phonics)", "Maths", "Environmental Science (EVS)", "Hindi (Varnamala)", "Drawing & Arts", "Music & Dance"],
+  "1": ["English", "Mathematics", "Environmental Studies (EVS)", "Hindi", "General Knowledge", "Art & Craft", "Physical Education"],
+  "2": ["English", "Mathematics", "Environmental Studies (EVS)", "Hindi", "General Knowledge", "Art & Craft", "Physical Education"],
+  "3": ["English", "Mathematics", "Environmental Studies (EVS)", "Hindi", "Computer Science", "General Knowledge", "Art & Craft", "Physical Education"],
+  "4": ["English", "Mathematics", "Environmental Studies (EVS)", "Hindi", "Computer Science", "General Knowledge", "Art & Craft", "Physical Education"],
+  "5": ["English", "Mathematics", "Environmental Studies (EVS)", "Hindi", "Computer Science", "General Knowledge", "Art & Craft", "Physical Education"],
+  "6": ["English", "Mathematics", "Science", "Social Studies (History)", "Social Studies (Geography)", "Social Studies (Civics)", "Hindi", "Computer Science", "Art & Music", "Physical Education"],
+  "7": ["English", "Mathematics", "Science", "Social Studies (History)", "Social Studies (Geography)", "Social Studies (Civics)", "Hindi", "Computer Science", "Art & Music", "Physical Education"],
+  "8": ["English", "Mathematics", "Science", "Social Studies (History)", "Social Studies (Geography)", "Social Studies (Civics)", "Hindi", "Computer Science", "Art & Music", "Physical Education"],
+  "9": ["English", "Mathematics", "Physics", "Chemistry", "Biology", "Social Science (History)", "Social Science (Geography)", "Social Science (Civics)", "Social Science (Economics)", "Hindi", "Computer Applications", "Physical Education"],
+  "10": ["English", "Mathematics", "Physics", "Chemistry", "Biology", "Social Science (History)", "Social Science (Geography)", "Social Science (Civics)", "Social Science (Economics)", "Hindi", "Computer Applications", "Physical Education"],
+  "11_science": ["English", "Physics", "Chemistry", "Mathematics", "Biology", "Computer Science", "Informatics Practices"],
+  "11_commerce": ["English", "Accountancy", "Business Studies", "Economics", "Mathematics", "Informatics Practices"],
+  "11_arts": ["English", "History", "Political Science", "Geography", "Psychology", "Sociology", "Economics", "Fine Arts"],
+  "12_science": ["English", "Physics", "Chemistry", "Mathematics", "Biology", "Computer Science", "Informatics Practices"],
+  "12_commerce": ["English", "Accountancy", "Business Studies", "Economics", "Mathematics", "Informatics Practices"],
+  "12_arts": ["English", "History", "Political Science", "Geography", "Psychology", "Sociology", "Economics", "Fine Arts"],
+};
+
+function getSubjectKey(grade, stream) {
+  if (grade === "11" || grade === "12") return `${grade}_${stream || "science"}`;
+  return grade;
+}
+
 export default function GenerateLesson() {
   const [syllabus, setSyllabus]   = useState("");
   const [subject, setSubject]     = useState("");
   const [grade, setGrade]         = useState("");
+  const [stream, setStream]       = useState("science");
   const [topic, setTopic]         = useState("");
   const [duration, setDuration]   = useState(40);
   const [languages, setLanguages] = useState("");
+
+  const subjectKey = getSubjectKey(grade, stream);
+  const subjectOptions = SUBJECTS_BY_GRADE[subjectKey] || [];
 
   const [loading, setLoading] = useState(false);
   const [lesson, setLesson]   = useState("");
@@ -72,22 +101,33 @@ export default function GenerateLesson() {
             </div>
 
             <div className="form-field">
-              <label className="form-label">Subject</label>
-              <select className="form-select" value={subject} onChange={(e) => setSubject(e.target.value)} required>
-                <option value="">Select subject</option>
-                <option value="Maths">Maths</option>
-                <option value="Science">Science</option>
-                <option value="English">English</option>
-                <option value="Social Science">Social Science</option>
+              <label className="form-label">Class / Grade</label>
+              <select className="form-select" value={grade} onChange={(e) => { setGrade(e.target.value); setSubject(""); }} required>
+                <option value="">Select class</option>
+                <option value="UKG">UKG</option>
+                {[...Array(12)].map((_, i) => (
+                  <option key={i + 1} value={String(i + 1)}>Class {i + 1}</option>
+                ))}
               </select>
             </div>
 
+            {(grade === "11" || grade === "12") && (
+              <div className="form-field">
+                <label className="form-label">Stream</label>
+                <select className="form-select" value={stream} onChange={(e) => { setStream(e.target.value); setSubject(""); }}>
+                  <option value="science">Science (PCM/PCB)</option>
+                  <option value="commerce">Commerce</option>
+                  <option value="arts">Humanities / Arts</option>
+                </select>
+              </div>
+            )}
+
             <div className="form-field">
-              <label className="form-label">Class / Grade</label>
-              <select className="form-select" value={grade} onChange={(e) => setGrade(e.target.value)} required>
-                <option value="">Select class</option>
-                {[...Array(12)].map((_, i) => (
-                  <option key={i + 1} value={i + 1}>Class {i + 1}</option>
+              <label className="form-label">Subject</label>
+              <select className="form-select" value={subject} onChange={(e) => setSubject(e.target.value)} required disabled={!grade}>
+                <option value="">{grade ? "Select subject" : "Select class first"}</option>
+                {subjectOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </div>

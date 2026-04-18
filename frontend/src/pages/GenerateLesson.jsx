@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import api from "../services/api";
+import SchoolLogoUpload from "../components/SchoolLogoUpload";
 
 const SUBJECTS_BY_GRADE = {
   UKG: ["English (Phonics)", "Maths", "Environmental Science (EVS)", "Hindi (Varnamala)", "Drawing & Arts", "Music & Dance"],
@@ -36,6 +37,8 @@ export default function GenerateLesson() {
   const [topic, setTopic]         = useState("");
   const [duration, setDuration]   = useState(40);
   const [languages, setLanguages] = useState("");
+
+  const [logo, setLogo] = useState(() => localStorage.getItem("school_logo") || null);
 
   const subjectKey = getSubjectKey(grade, stream);
   const subjectOptions = SUBJECTS_BY_GRADE[subjectKey] || [];
@@ -88,6 +91,7 @@ export default function GenerateLesson() {
 
       <div className="card" style={{ maxWidth: 720 }}>
         <form onSubmit={handleGenerate}>
+          <SchoolLogoUpload logo={logo} setLogo={setLogo} />
           <div className="form-grid">
 
             <div className="form-field">

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import api from "../services/api";
 import jsPDF from "jspdf";
+import SchoolLogoUpload from "../components/SchoolLogoUpload";
 import autoTable from "jspdf-autotable";
 import { saveAs } from "file-saver";
 import {
@@ -86,6 +87,7 @@ export default function MonthlyPlanner() {
   const now = new Date();
 
   // Config
+  const [logo, setLogo] = useState(() => localStorage.getItem("school_logo") || null);
   const [grade,      setGrade]      = useState("UKG");
   const [board,      setBoard]      = useState("CBSE");
   const [month,      setMonth]      = useState(now.getMonth() + 1);
@@ -175,6 +177,8 @@ export default function MonthlyPlanner() {
   const downloadPDF = () => {
     const doc = new jsPDF({ orientation: "landscape", format: "a4", unit: "mm" });
     const w = doc.internal.pageSize.getWidth();
+
+    if (logo) { try { doc.addImage(logo, "PNG", 10, 5, 18, 18); } catch {} }
 
     // Header
     doc.setFont("helvetica", "bold");
@@ -322,6 +326,7 @@ export default function MonthlyPlanner() {
       {/* ── Config form ── */}
       <div className="card" style={{ maxWidth: 760, marginBottom: 24 }}>
         <form onSubmit={buildPlanner}>
+          <SchoolLogoUpload logo={logo} setLogo={setLogo} />
           <div className="form-grid">
             <div className="form-field">
               <label className="form-label">School Name <span style={{ color: "#94a3b8" }}>(optional)</span></label>

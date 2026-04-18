@@ -4,6 +4,7 @@ import DashboardLayout from "../layout/DashboardLayout";
 import axios from "axios";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import SchoolLogoUpload from "../components/SchoolLogoUpload";
 
 /* ── constants ── */
 const GRADES   = ["LKG","UKG","Class 1","Class 2","Class 3","Class 4","Class 5",
@@ -84,6 +85,8 @@ function lookupAttendance(rollNo, forYear, forClassName, forSection) {
    MAIN COMPONENT
 ══════════════════════════════════════════════════════ */
 export default function ReportCard() {
+
+  const [logo, setLogo] = useState(() => localStorage.getItem("school_logo") || null);
 
   /* ── class config ── */
   const [schoolName,   setSchoolName]   = useState("Delhi Public School");
@@ -247,6 +250,8 @@ export default function ReportCard() {
     // ── header band
     doc.setFillColor(30, 58, 138);
     doc.rect(10, 10, pw - 20, 22, "F");
+
+    if (logo) { try { doc.addImage(logo, "PNG", 13, 12, 16, 16); } catch {} }
 
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold"); doc.setFontSize(16);
@@ -424,6 +429,7 @@ export default function ReportCard() {
         <div style={{ maxWidth: 700 }}>
           <div className="card" style={{ marginBottom:20 }}>
             <p style={{ fontWeight:700, color:"#0f172a", fontSize:15, marginBottom:16 }}>Class Information</p>
+            <SchoolLogoUpload logo={logo} setLogo={setLogo} />
             <div className="form-grid">
               <div className="form-field">
                 <label className="form-label">School Name</label>

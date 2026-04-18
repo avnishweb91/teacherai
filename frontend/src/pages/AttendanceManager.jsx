@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import jsPDF from "jspdf";
+import SchoolLogoUpload from "../components/SchoolLogoUpload";
 import autoTable from "jspdf-autotable";
 import { saveAs } from "file-saver";
 
@@ -44,6 +45,7 @@ export default function AttendanceManager() {
   const today = toLocalDateKey(); // local date key, recomputed each render
 
   /* ── class config ── */
+  const [logo, setLogo] = useState(() => localStorage.getItem("school_logo") || null);
   const [className, setClassName] = useState(() => localStorage.getItem("att_class")   || "UKG");
   const [section,   setSection]   = useState(() => localStorage.getItem("att_section") || "A");
 
@@ -142,6 +144,7 @@ export default function AttendanceManager() {
     const w = doc.internal.pageSize.getWidth();
     const mName = MONTHS[repMonth - 1];
 
+    if (logo) { try { doc.addImage(logo, "PNG", 10, 5, 18, 18); } catch {} }
     doc.setFont("helvetica","bold"); doc.setFontSize(13);
     doc.text(`Attendance Register – ${className} ${section} – ${mName} ${repYear}`, w/2, 13, { align:"center" });
 
@@ -222,6 +225,11 @@ export default function AttendanceManager() {
       <div className="page-header">
         <h1 className="page-title">Attendance Manager</h1>
         <p className="page-subtitle">Manage student roster, mark daily attendance, and generate monthly registers.</p>
+      </div>
+
+      {/* ── School logo ── */}
+      <div className="card" style={{ maxWidth: 560, marginBottom: 16, padding: "16px 20px" }}>
+        <SchoolLogoUpload logo={logo} setLogo={setLogo} />
       </div>
 
       {/* ── Class selector ── */}

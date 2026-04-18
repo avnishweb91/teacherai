@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import axios from "axios";
 import jsPDF from "jspdf";
+import SchoolLogoUpload from "../components/SchoolLogoUpload";
 
 /* ─── constants ─── */
 const NOTICE_TYPES = [
@@ -50,6 +51,7 @@ export default function NoticeGenerator() {
   const [extraInstr,   setExtraInstr]   = useState("");
 
   /* ── output state ── */
+  const [logo, setLogo] = useState(() => localStorage.getItem("school_logo") || null);
   const [noticeText,   setNoticeText]   = useState("");
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState("");
@@ -122,6 +124,8 @@ export default function NoticeGenerator() {
     /* ── header band ── */
     doc.setFillColor(30, 58, 138);
     doc.rect(9.5, 9.5, pw - 19, 28, "F");
+
+    if (logo) { try { doc.addImage(logo, "PNG", 12, 11, 22, 22); } catch {} }
 
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold"); doc.setFontSize(17);
@@ -239,6 +243,7 @@ export default function NoticeGenerator() {
           {/* School details */}
           <div className="card" style={{ marginBottom:16 }}>
             <p style={{ fontWeight:700, color:"#0f172a", fontSize:14, marginBottom:14 }}>School Details</p>
+            <SchoolLogoUpload logo={logo} setLogo={setLogo} />
             <div className="form-grid">
               <div className="form-field">
                 <label className="form-label">School Name</label>

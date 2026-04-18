@@ -13,6 +13,7 @@ export default function LoginEmail({ onLogin }) {
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
 
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,6 +58,7 @@ export default function LoginEmail({ onLogin }) {
         name: name.trim(),
         email: regEmail.trim(),
         password: regPassword,
+        ...(inviteCode.trim() ? { inviteCode: inviteCode.trim().toUpperCase() } : {}),
       });
       localStorage.setItem("token", res.data.token);
       onLogin();
@@ -64,6 +66,8 @@ export default function LoginEmail({ onLogin }) {
       const msg = err?.response?.data?.message || err?.response?.data || "";
       if (typeof msg === "string" && msg.toLowerCase().includes("already")) {
         setError("This email is already registered. Please sign in.");
+      } else if (typeof msg === "string" && msg.toLowerCase().includes("invite")) {
+        setError("Invalid invite code. Please check with your school admin.");
       } else {
         setError("Registration failed. Please try again.");
       }
@@ -145,6 +149,27 @@ export default function LoginEmail({ onLogin }) {
             required
             autoComplete="new-password"
           />
+        </div>
+
+        <div className="auth-field">
+          <label className="auth-label" htmlFor="invite-code">
+            School Invite Code <span style={{ fontWeight: 400, color: "#94a3b8" }}>(optional)</span>
+          </label>
+          <input
+            id="invite-code"
+            type="text"
+            className="auth-input"
+            placeholder="e.g. A1B2C3D4 — from your school admin"
+            value={inviteCode}
+            onChange={(e) => setInviteCode(e.target.value)}
+            autoComplete="off"
+            style={{ textTransform: "uppercase", letterSpacing: 2 }}
+          />
+          {inviteCode.trim() && (
+            <p style={{ fontSize: 12, color: "#2563eb", marginTop: 4 }}>
+              🏫 You'll be added to your school's SmartBoard account automatically.
+            </p>
+          )}
         </div>
 
         <button

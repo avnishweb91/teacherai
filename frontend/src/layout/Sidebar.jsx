@@ -8,6 +8,14 @@ function getRoleFromToken() {
   } catch { return null; }
 }
 
+function getSchoolIdFromToken() {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    return JSON.parse(atob(token.split(".")[1])).schoolId || null;
+  } catch { return null; }
+}
+
 const NAV_ITEMS = [
   { to: "/dashboard",  icon: "🏠", label: "Dashboard",              tour: null },
   { to: "/lesson",     icon: "📘", label: "Generate Lesson",        tour: "nav-lesson" },
@@ -23,7 +31,9 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ open, onClose }) {
-  const isAdmin = getRoleFromToken() === "ADMIN";
+  const role = getRoleFromToken();
+  const isAdmin = role === "ADMIN";
+  const isSchoolAdmin = role === "SCHOOL_ADMIN";
 
   return (
     <aside className={`dash-sidebar ${open ? "open" : ""}`}>
@@ -46,6 +56,20 @@ export default function Sidebar({ open, onClose }) {
           </NavLink>
         ))}
       </nav>
+
+      {isSchoolAdmin && (
+        <div style={{ padding: "8px 16px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+          <NavLink
+            to="/school-admin"
+            className={({ isActive }) => `dash-nav-item ${isActive ? "active" : ""}`}
+            onClick={onClose}
+            style={{ background: "rgba(34,197,94,0.15)", color: "#86efac" }}
+          >
+            <span className="dash-nav-icon">🏫</span>
+            School Dashboard
+          </NavLink>
+        </div>
+      )}
 
       {isAdmin && (
         <div style={{ padding: "8px 16px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>

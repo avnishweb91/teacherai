@@ -33,6 +33,7 @@ public class AuthService {
         private final PasswordEncoder passwordEncoder;
         private final SmsService smsService;
         private final EmailService emailService;
+        private final com.edu.teacherai.repository.SchoolRepository schoolRepo;
 
         @Value("${google.client.id:}")
         private String googleClientId;
@@ -43,7 +44,8 @@ public class AuthService {
                 JwtUtil jwtUtil,
                 PasswordEncoder passwordEncoder,
                 SmsService smsService,
-                EmailService emailService
+                EmailService emailService,
+                com.edu.teacherai.repository.SchoolRepository schoolRepo
         ) {
             this.userRepo = userRepo;
             this.otpRepo = otpRepo;
@@ -51,6 +53,7 @@ public class AuthService {
             this.passwordEncoder = passwordEncoder;
             this.smsService = smsService;
             this.emailService = emailService;
+            this.schoolRepo = schoolRepo;
         }
 
         /* ======================
@@ -143,13 +146,24 @@ public class AuthService {
         }
 
         User user = new User();
+        // resolve school invite if provided
+        Long schoolId = null;
+        String planType = "FREE";
+        if (req.getInviteCode() != null && !req.getInviteCode().isBlank()) {
+            com.edu.teacherai.entity.School school = schoolRepo.findByInviteCode(req.getInviteCode().trim().toUpperCase())
+                    .orElseThrow(() -> new RuntimeException("Invalid invite code"));
+            schoolId = school.getId();
+            planType = "SCHOOL";
+        }
+
         user.setName(req.getName());
         user.setMobile(mobile);
         user.setEmail(req.getEmail());
         user.setPassword(passwordEncoder.encode(req.getPassword()));
         user.setBoardPreference(req.getBoardPreference());
         user.setRole("TEACHER");
-        user.setPlanType("FREE");
+        user.setSchoolId(schoolId);
+        user.setPlanType(planType);
 
         userRepo.save(user);
 

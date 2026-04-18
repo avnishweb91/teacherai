@@ -22,7 +22,9 @@ public class User {
     private String password; // nullable for OTP users
 
     @Column(nullable = false)
-    private String role; // TEACHER / ADMIN
+    private String role; // TEACHER / SCHOOL_ADMIN / ADMIN
+
+    private Long schoolId; // null for individual teachers
 
     private String boardPreference; // CBSE / ICSE / Bihar Board
 
@@ -85,6 +87,9 @@ public class User {
     public String getRole() {
         return role;
     }
+
+    public Long getSchoolId() { return schoolId; }
+    public void setSchoolId(Long schoolId) { this.schoolId = schoolId; }
 
     public String getBoardPreference() {
         return boardPreference;

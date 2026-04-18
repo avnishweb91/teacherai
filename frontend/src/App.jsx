@@ -22,9 +22,20 @@ import AuthPage from "./pages/AuthPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import DoubtSolver from "./pages/DoubtSolver";
+import SchoolRegister from "./pages/SchoolRegister";
+import SchoolAdminDashboard from "./pages/SchoolAdminDashboard";
+
+function getRoleFromToken() {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    return JSON.parse(atob(token.split(".")[1])).role;
+  } catch { return null; }
+}
 
 export default function App() {
   const isLoggedIn = !!localStorage.getItem("token");
+  const role = getRoleFromToken();
 
   return (
     <BrowserRouter>
@@ -35,12 +46,18 @@ export default function App() {
           path="/login"
           element={
             isLoggedIn ? (
-              <Navigate to="/dashboard" replace />
+              <Navigate to={role === "SCHOOL_ADMIN" ? "/school-admin" : "/dashboard"} replace />
             ) : (
               <AuthPage />
             )
           }
         />
+
+        {/* SCHOOL REGISTER */}
+        <Route path="/school-register" element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <SchoolRegister />} />
+
+        {/* SCHOOL ADMIN DASHBOARD */}
+        <Route path="/school-admin" element={<ProtectedRoute><SchoolAdminDashboard /></ProtectedRoute>} />
 
         {/* DASHBOARD */}
         <Route
@@ -173,7 +190,7 @@ export default function App() {
         <Route
           path="*"
           element={
-            <Navigate to={isLoggedIn ? "/dashboard" : "/login"} replace />
+            <Navigate to={isLoggedIn ? (role === "SCHOOL_ADMIN" ? "/school-admin" : "/dashboard") : "/login"} replace />
           }
         />
 

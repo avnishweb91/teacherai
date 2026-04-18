@@ -8,6 +8,7 @@ public class RegisterRequest {
     private String password;
 
     private String boardPreference;
+    private String inviteCode; // optional — joins a school if provided
 
     public String getName() {
         return name;
@@ -48,4 +49,7 @@ public class RegisterRequest {
     public void setBoardPreference(String boardPreference) {
         this.boardPreference = boardPreference;
     }
+
+    public String getInviteCode() { return inviteCode; }
+    public void setInviteCode(String inviteCode) { this.inviteCode = inviteCode; }
 }

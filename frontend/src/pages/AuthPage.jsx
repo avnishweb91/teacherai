@@ -244,6 +244,14 @@ export default function AuthPage() {
 
           {/* Email login / register */}
           <LoginEmail onLogin={handleLoginSuccess} />
+
+          {/* School CTA */}
+          <div style={{ marginTop: 20, padding: "14px 16px", background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: 12, textAlign: "center" }}>
+            <p style={{ fontSize: 13, color: "#15803d", fontWeight: 600, margin: "0 0 8px" }}>🏫 Want SmartBoard for your whole school?</p>
+            <a href="/school-register" style={{ fontSize: 13, color: "#15803d", fontWeight: 700, textDecoration: "underline" }}>
+              Register your school →
+            </a>
+          </div>
         </div>
       </div>
     </div>

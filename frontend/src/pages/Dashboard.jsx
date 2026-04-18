@@ -164,6 +164,33 @@ export default function Dashboard() {
           </div>
           <div className="action-card-arrow">Track syllabus →</div>
         </button>
+
+        <button className="action-card" onClick={() => navigate("/exam")}>
+          <div className="action-card-icon">📅</div>
+          <div className="action-card-title">Exam Schedule Manager</div>
+          <div className="action-card-desc">
+            Plan unit tests, half-yearly and final exams — schedule by class and board, download printable timetables.
+          </div>
+          <div className="action-card-arrow">Plan exams →</div>
+        </button>
+
+        <button className="action-card" onClick={() => navigate("/homework")}>
+          <div className="action-card-icon">📓</div>
+          <div className="action-card-title">Homework Tracker</div>
+          <div className="action-card-desc">
+            Assign homework per subject and class, track pending and completed work, download weekly reports.
+          </div>
+          <div className="action-card-arrow">Track homework →</div>
+        </button>
+
+        <button className="action-card" onClick={() => navigate("/parents")}>
+          <div className="action-card-icon">👨‍👩‍👧</div>
+          <div className="action-card-title">Parent Communication</div>
+          <div className="action-card-desc">
+            Store parent contacts, send personalised notices for exams, attendance alerts, fees and more — via WhatsApp or PDF slips.
+          </div>
+          <div className="action-card-arrow">Communicate →</div>
+        </button>
       </div>
     </DashboardLayout>
   );

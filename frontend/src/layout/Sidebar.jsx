@@ -27,6 +27,9 @@ const NAV_ITEMS = [
   { to: "/notice",     icon: "📢", label: "Notice / Circular",      tour: "nav-notice" },
   { to: "/timetable",  icon: "🗓️", label: "Timetable Builder",      tour: null },
   { to: "/syllabus",   icon: "📖", label: "Syllabus Tracker",       tour: null },
+  { to: "/exam",       icon: "📅", label: "Exam Schedule",          tour: null },
+  { to: "/homework",   icon: "📓", label: "Homework Tracker",       tour: null },
+  { to: "/parents",    icon: "👨‍👩‍👧", label: "Parent Communication",   tour: null },
   { to: "/doubt",      icon: "💡", label: "Doubt Solver",           tour: null },
   { to: "/profile",    icon: "👤", label: "Profile",                tour: "nav-profile" },
 ];

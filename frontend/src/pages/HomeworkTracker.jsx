@@ -1,0 +1,274 @@
+import { useState, useEffect } from "react";
+import DashboardLayout from "../layout/DashboardLayout";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import SchoolLogoUpload from "../components/SchoolLogoUpload";
+
+const GRADES = ["LKG","UKG","Class 1","Class 2","Class 3","Class 4","Class 5",
+                "Class 6","Class 7","Class 8","Class 9","Class 10","Class 11","Class 12"];
+const SECTIONS = ["A","B","C","D","E"];
+const SUBJECTS = ["English","Mathematics","Hindi","Science","Social Studies","Physics",
+                  "Chemistry","Biology","History","Geography","Computer Science","Economics",
+                  "EVS","Sanskrit","Drawing","Physical Education","General Knowledge","Other"];
+
+const STORAGE_KEY = "homework_tracker_v1";
+const load = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; } };
+const save = (d) => localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const fmt = (d) => new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+const isOverdue = (dueDate) => dueDate < todayStr();
+
+const SUBJECT_COLORS = {
+  "Mathematics":    ["#eff6ff","#2563eb"],
+  "English":        ["#f0fdf4","#16a34a"],
+  "Hindi":          ["#fef3c7","#d97706"],
+  "Science":        ["#fdf4ff","#9333ea"],
+  "Social Studies": ["#fef2f2","#dc2626"],
+  "Physics":        ["#f0f9ff","#0369a1"],
+  "Chemistry":      ["#fdf4ff","#7c3aed"],
+  "Biology":        ["#f0fdf4","#15803d"],
+};
+
+export default function HomeworkTracker() {
+  const [homework, setHomework] = useState(load);
+  const [grade, setGrade]       = useState("Class 6");
+  const [section, setSection]   = useState("A");
+  const [logo, setLogo]         = useState(() => localStorage.getItem("school_logo") || null);
+  const [tab, setTab]           = useState("active");
+
+  const [fSubject, setFSubject]   = useState(SUBJECTS[0]);
+  const [fTitle, setFTitle]       = useState("");
+  const [fDesc, setFDesc]         = useState("");
+  const [fAssigned, setFAssigned] = useState(todayStr());
+  const [fDue, setFDue]           = useState(todayStr());
+
+  useEffect(() => { save(homework); }, [homework]);
+
+  const gradeKey = `${grade}||${section}`;
+  const filtered  = homework.filter(h => h.gradeKey === gradeKey);
+  const active    = filtered.filter(h => !h.completed);
+  const completed = filtered.filter(h => h.completed);
+
+  const addHomework = (e) => {
+    e.preventDefault();
+    if (!fTitle.trim()) return;
+    setHomework(prev => [{
+      id: Date.now(), gradeKey, grade, section,
+      subject: fSubject, title: fTitle.trim(), description: fDesc.trim(),
+      assignedDate: fAssigned, dueDate: fDue, completed: false, completedAt: null,
+    }, ...prev]);
+    setFTitle(""); setFDesc("");
+    setTab("active");
+  };
+
+  const markDone   = (id) => setHomework(prev => prev.map(h =>
+    h.id === id ? { ...h, completed: true, completedAt: todayStr() } : h));
+  const markUndone = (id) => setHomework(prev => prev.map(h =>
+    h.id === id ? { ...h, completed: false, completedAt: null } : h));
+  const removeHW   = (id) => setHomework(prev => prev.filter(h => h.id !== id));
+
+  const downloadPDF = () => {
+    const doc = new jsPDF({ orientation: "portrait", format: "a4", unit: "mm" });
+    const pw = doc.internal.pageSize.getWidth();
+    if (logo) { try { doc.addImage(logo, "PNG", 10, 8, 18, 18); } catch {} }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(14);
+    doc.text("Homework Report", pw / 2, 16, { align: "center" });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+    doc.text(`${grade} ${section}  |  Generated: ${new Date().toLocaleDateString("en-IN")}`, pw / 2, 23, { align: "center" });
+
+    autoTable(doc, {
+      head: [["Subject", "Homework", "Assigned", "Due Date", "Status"]],
+      body: [...active, ...completed].map(h => [
+        h.subject, h.title, fmt(h.assignedDate), fmt(h.dueDate),
+        h.completed ? "✓ Done" : isOverdue(h.dueDate) ? "⚠ Overdue" : "Pending",
+      ]),
+      startY: 30,
+      styles: { fontSize: 9, cellPadding: 2.5 },
+      headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: "bold" },
+      columnStyles: {
+        0: { cellWidth: 28 }, 1: { cellWidth: 72 },
+        2: { cellWidth: 24 }, 3: { cellWidth: 24 }, 4: { cellWidth: 24, halign: "center" },
+      },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.column.index === 4) {
+          const v = data.cell.raw;
+          if (v?.includes("Done"))    { data.cell.styles.textColor = [22,163,74];  data.cell.styles.fontStyle = "bold"; }
+          else if (v?.includes("Overdue")) { data.cell.styles.textColor = [220,38,38]; data.cell.styles.fontStyle = "bold"; }
+          else { data.cell.styles.textColor = [148,163,184]; }
+        }
+      },
+      margin: { left: 14, right: 14 },
+    });
+
+    doc.setFontSize(8); doc.setTextColor(148, 163, 184);
+    doc.text("Generated by SmartBoard AI", pw / 2, doc.internal.pageSize.getHeight() - 8, { align: "center" });
+    doc.save(`Homework_${grade.replace(/\s/g,"")}_${section}.pdf`);
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="page-header">
+        <h1 className="page-title">Homework Tracker</h1>
+        <p className="page-subtitle">Assign homework per class and subject, track completion, and download weekly reports.</p>
+      </div>
+
+      <div className="card" style={{ maxWidth: 820, marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div className="form-field" style={{ minWidth: 140 }}>
+            <label className="form-label">Class</label>
+            <select className="form-select" value={grade} onChange={e => setGrade(e.target.value)}>
+              {GRADES.map(g => <option key={g}>{g}</option>)}
+            </select>
+          </div>
+          <div className="form-field" style={{ minWidth: 100 }}>
+            <label className="form-label">Section</label>
+            <select className="form-select" value={section} onChange={e => setSection(e.target.value)}>
+              {SECTIONS.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "flex-end" }}>
+            <SchoolLogoUpload logo={logo} setLogo={setLogo} />
+            {filtered.length > 0 && (
+              <button className="btn-secondary" onClick={downloadPDF}>⬇ PDF Report</button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="auth-tabs" style={{ maxWidth: 480, marginBottom: 20 }}>
+        {[
+          ["active",    `📋 Active (${active.length})`],
+          ["add",       "➕ Assign New"],
+          ["completed", `✅ Completed (${completed.length})`],
+        ].map(([k, l]) => (
+          <button key={k} className={`auth-tab ${tab === k ? "active" : ""}`} onClick={() => setTab(k)}>{l}</button>
+        ))}
+      </div>
+
+      {/* ── Active ── */}
+      {tab === "active" && (
+        <div style={{ maxWidth: 820 }}>
+          {active.length === 0 ? (
+            <div className="card" style={{ textAlign: "center", padding: "40px 0", color: "#94a3b8" }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
+              <p>No active homework for {grade} {section}. Use "Assign New" to add some.</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {active.map(h => <HWCard key={h.id} hw={h} onDone={markDone} onUndone={markUndone} onRemove={removeHW} />)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Assign New ── */}
+      {tab === "add" && (
+        <div className="card" style={{ maxWidth: 820 }}>
+          <p style={{ fontWeight: 700, color: "#0f172a", marginBottom: 16 }}>Assign Homework — {grade} {section}</p>
+          <form onSubmit={addHomework}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="form-field">
+                <label className="form-label">Subject</label>
+                <select className="form-select" value={fSubject} onChange={e => setFSubject(e.target.value)}>
+                  {SUBJECTS.map(s => <option key={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="form-field">
+                <label className="form-label">Title *</label>
+                <input className="form-input" placeholder="e.g. Exercise 3.2, Page 45-46"
+                  value={fTitle} onChange={e => setFTitle(e.target.value)} required />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Date Assigned</label>
+                <input type="date" className="form-input" value={fAssigned}
+                  onChange={e => setFAssigned(e.target.value)} />
+              </div>
+              <div className="form-field">
+                <label className="form-label">Due Date</label>
+                <input type="date" className="form-input" value={fDue} min={fAssigned}
+                  onChange={e => setFDue(e.target.value)} />
+              </div>
+              <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+                <label className="form-label">Instructions <span style={{ fontWeight: 400, color: "#94a3b8" }}>(optional)</span></label>
+                <textarea className="form-input" rows={2} style={{ resize: "vertical" }}
+                  placeholder="Additional notes for students…"
+                  value={fDesc} onChange={e => setFDesc(e.target.value)} />
+              </div>
+            </div>
+            <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button type="button" className="btn-secondary" onClick={() => setTab("active")}>Cancel</button>
+              <button type="submit" className="btn-primary">Assign Homework</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ── Completed ── */}
+      {tab === "completed" && (
+        <div style={{ maxWidth: 820 }}>
+          {completed.length === 0 ? (
+            <div className="card" style={{ textAlign: "center", padding: "40px 0", color: "#94a3b8" }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>
+              <p>No completed homework yet.</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, opacity: 0.8 }}>
+              {completed.map(h => <HWCard key={h.id} hw={h} onDone={markDone} onUndone={markUndone} onRemove={removeHW} />)}
+            </div>
+          )}
+        </div>
+      )}
+    </DashboardLayout>
+  );
+}
+
+function HWCard({ hw, onDone, onUndone, onRemove }) {
+  const overdue = !hw.completed && isOverdue(hw.dueDate);
+  const [sbg, stc] = SUBJECT_COLORS[hw.subject] || ["#f8fafc","#64748b"];
+  return (
+    <div style={{
+      padding: "14px 18px", borderRadius: 12, background: "#fff",
+      border: `1px solid ${overdue ? "#fecaca" : hw.completed ? "#bbf7d0" : "#e2e8f0"}`,
+      display: "flex", gap: 14, alignItems: "flex-start",
+    }}>
+      <button onClick={() => hw.completed ? onUndone(hw.id) : onDone(hw.id)}
+        style={{
+          marginTop: 2, width: 22, height: 22, borderRadius: 6, flexShrink: 0, cursor: "pointer",
+          border: hw.completed ? "none" : "2px solid #cbd5e1",
+          background: hw.completed ? "#16a34a" : "#fff",
+          color: "#fff", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+        {hw.completed ? "✓" : ""}
+      </button>
+      <div style={{ flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 14, fontWeight: 700,
+            color: hw.completed ? "#94a3b8" : "#0f172a",
+            textDecoration: hw.completed ? "line-through" : "none" }}>
+            {hw.title}
+          </span>
+          <span style={{ background: sbg, color: stc, borderRadius: 6, padding: "1px 8px", fontSize: 11, fontWeight: 700 }}>
+            {hw.subject}
+          </span>
+          {overdue && (
+            <span style={{ background: "#fef2f2", color: "#dc2626", borderRadius: 6, padding: "1px 8px", fontSize: 11, fontWeight: 700 }}>
+              ⚠ Overdue
+            </span>
+          )}
+        </div>
+        {hw.description && (
+          <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 6px" }}>{hw.description}</p>
+        )}
+        <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", gap: 14 }}>
+          <span>Assigned: {fmt(hw.assignedDate)}</span>
+          <span>Due: {fmt(hw.dueDate)}</span>
+          {hw.completedAt && <span style={{ color: "#16a34a" }}>Done: {fmt(hw.completedAt)}</span>}
+        </div>
+      </div>
+      <button onClick={() => onRemove(hw.id)}
+        style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: 16, padding: 4 }}>
+        ✕
+      </button>
+    </div>
+  );
+}

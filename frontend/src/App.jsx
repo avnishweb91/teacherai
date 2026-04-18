@@ -25,6 +25,9 @@ import DoubtSolver from "./pages/DoubtSolver";
 import SchoolRegister from "./pages/SchoolRegister";
 import SchoolAdminDashboard from "./pages/SchoolAdminDashboard";
 import SyllabusTracker from "./pages/SyllabusTracker";
+import ExamSchedule from "./pages/ExamSchedule";
+import HomeworkTracker from "./pages/HomeworkTracker";
+import ParentPortal from "./pages/ParentPortal";
 
 function getRoleFromToken() {
   try {
@@ -182,6 +185,15 @@ export default function App() {
 
         {/* SYLLABUS TRACKER */}
         <Route path="/syllabus" element={<ProtectedRoute><SyllabusTracker /></ProtectedRoute>} />
+
+        {/* EXAM SCHEDULE */}
+        <Route path="/exam" element={<ProtectedRoute><ExamSchedule /></ProtectedRoute>} />
+
+        {/* HOMEWORK TRACKER */}
+        <Route path="/homework" element={<ProtectedRoute><HomeworkTracker /></ProtectedRoute>} />
+
+        {/* PARENT PORTAL */}
+        <Route path="/parents" element={<ProtectedRoute><ParentPortal /></ProtectedRoute>} />
 
         {/* DOUBT SOLVER */}
         <Route path="/doubt" element={<ProtectedRoute><DoubtSolver /></ProtectedRoute>} />

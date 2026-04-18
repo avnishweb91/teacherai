@@ -155,6 +155,15 @@ export default function Dashboard() {
           </div>
           <div className="action-card-arrow">Ask a doubt →</div>
         </button>
+
+        <button className="action-card" onClick={() => navigate("/syllabus")}>
+          <div className="action-card-icon">📖</div>
+          <div className="action-card-title">Syllabus Tracker</div>
+          <div className="action-card-desc">
+            Track chapter completion per subject and class — mark chapters done and download a progress report anytime.
+          </div>
+          <div className="action-card-arrow">Track syllabus →</div>
+        </button>
       </div>
     </DashboardLayout>
   );

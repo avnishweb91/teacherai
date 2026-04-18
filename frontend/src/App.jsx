@@ -24,6 +24,7 @@ import TermsOfService from "./pages/TermsOfService";
 import DoubtSolver from "./pages/DoubtSolver";
 import SchoolRegister from "./pages/SchoolRegister";
 import SchoolAdminDashboard from "./pages/SchoolAdminDashboard";
+import SyllabusTracker from "./pages/SyllabusTracker";
 
 function getRoleFromToken() {
   try {
@@ -178,6 +179,9 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* SYLLABUS TRACKER */}
+        <Route path="/syllabus" element={<ProtectedRoute><SyllabusTracker /></ProtectedRoute>} />
 
         {/* DOUBT SOLVER */}
         <Route path="/doubt" element={<ProtectedRoute><DoubtSolver /></ProtectedRoute>} />

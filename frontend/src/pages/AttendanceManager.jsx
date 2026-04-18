@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import jsPDF from "jspdf";
 import SchoolLogoUpload from "../components/SchoolLogoUpload";
@@ -68,6 +68,34 @@ export default function AttendanceManager() {
   /* persist class */
   useEffect(() => { localStorage.setItem("att_class",   className); }, [className]);
   useEffect(() => { localStorage.setItem("att_section", section);   }, [section]);
+
+  /* ─── CSV import ─── */
+  const csvInputRef = useRef();
+  const importCSV = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const lines = ev.target.result.split(/\r?\n/).filter(l => l.trim());
+      const added = [];
+      let nextRoll = students.length + 1;
+      lines.forEach(line => {
+        const parts = line.split(",").map(p => p.replace(/^"|"$/g, "").trim());
+        const roll = parts[0] && !/^roll/i.test(parts[0]) ? parts[0] : String(nextRoll);
+        const name = parts[1] || parts[0];
+        if (!name || /^(roll|name|student)/i.test(name)) return;
+        if (students.some(s => s.name.toLowerCase() === name.toLowerCase())) return;
+        added.push({ id: Date.now() + Math.random(), rollNo: roll, name, className, section });
+        nextRoll++;
+      });
+      if (added.length === 0) return alert("No new students found in CSV.");
+      const list = [...students, ...added];
+      setStudents(list); saveStudents(list);
+      alert(`Imported ${added.length} student(s) successfully.`);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
 
   /* ─── Roster ops ─── */
   const addStudent = (e) => {
@@ -267,13 +295,27 @@ export default function AttendanceManager() {
         <div className="card" style={{ maxWidth: 560 }}>
           <p style={{ fontWeight:700, color:"#0f172a", marginBottom:16, fontSize:15 }}>Student Roster — {className} {section}</p>
 
-          <form onSubmit={addStudent} style={{ display:"flex", gap:8, marginBottom:20 }}>
+          <form onSubmit={addStudent} style={{ display:"flex", gap:8, marginBottom:12 }}>
             <input className="form-input" placeholder="Roll No" value={newRoll}
               onChange={e=>setNewRoll(e.target.value)} style={{ width:80 }} />
             <input className="form-input" placeholder="Student full name" value={newName}
               onChange={e=>setNewName(e.target.value)} required style={{ flex:1 }} />
             <button type="submit" className="btn-primary" style={{ whiteSpace:"nowrap" }}>+ Add</button>
           </form>
+
+          {/* CSV bulk import */}
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20, padding:"10px 14px",
+            background:"#f0fdf4", border:"1.5px dashed #86efac", borderRadius:10 }}>
+            <span style={{ fontSize:13, color:"#15803d", fontWeight:600, flex:1 }}>
+              📥 Bulk import from CSV &nbsp;
+              <span style={{ fontWeight:400, color:"#64748b" }}>(columns: Roll No, Student Name)</span>
+            </span>
+            <input ref={csvInputRef} type="file" accept=".csv" style={{ display:"none" }} onChange={importCSV} />
+            <button className="btn-secondary" style={{ fontSize:12, padding:"6px 14px" }}
+              onClick={() => csvInputRef.current.click()}>
+              Choose CSV
+            </button>
+          </div>
 
           {students.length === 0 ? (
             <div style={{ textAlign:"center", color:"#94a3b8", padding:"32px 0" }}>

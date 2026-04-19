@@ -83,7 +83,7 @@ export default function SchoolAdminDashboard() {
               Teachers can no longer join using the invite code. Contact us to activate your school plan and continue with unlimited access.
             </p>
           </div>
-          <a href="mailto:avnishweb91@gmail.com?subject=SmartBoard School Plan Activation"
+          <a href="mailto:support@smartboard.co.in?subject=SmartBoard School Plan Activation"
             style={{ background: "#dc2626", color: "#fff", borderRadius: 10, padding: "10px 20px",
               fontWeight: 700, fontSize: 13, textDecoration: "none", whiteSpace: "nowrap" }}>
             Contact to Activate →
@@ -107,7 +107,7 @@ export default function SchoolAdminDashboard() {
               Contact us to upgrade for unlimited teachers and continued access.
             </p>
           </div>
-          <a href="mailto:avnishweb91@gmail.com?subject=SmartBoard School Plan - Upgrade Request"
+          <a href="mailto:support@smartboard.co.in?subject=SmartBoard School Plan - Upgrade Request"
             style={{ background: "#2563eb", color: "#fff", borderRadius: 10, padding: "10px 20px",
               fontWeight: 700, fontSize: 13, textDecoration: "none", whiteSpace: "nowrap" }}>
             Upgrade Plan →

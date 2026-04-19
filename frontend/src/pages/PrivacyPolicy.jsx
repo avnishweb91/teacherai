@@ -6,7 +6,7 @@ export default function PrivacyPolicy() {
 
       <section style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 18, fontWeight: 600 }}>1. Who We Are</h2>
-        <p>TeacherAI ("we", "our", "us") is an AI-powered teaching assistant built for Indian classrooms. This policy explains how we collect, use and protect your information when you use our service at teacherai.app.</p>
+        <p>SmartBoard AI ("we", "our", "us") is an AI-powered teaching assistant built for Indian classrooms. This policy explains how we collect, use and protect your information when you use our service at smartboard.co.in.</p>
       </section>
 
       <section style={{ marginBottom: 28 }}>
@@ -21,7 +21,7 @@ export default function PrivacyPolicy() {
       <section style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 18, fontWeight: 600 }}>3. How We Use Your Information</h2>
         <ul style={{ paddingLeft: 20 }}>
-          <li>To provide and improve the TeacherAI service.</li>
+          <li>To provide and improve the SmartBoard AI service.</li>
           <li>To authenticate your account and keep it secure.</li>
           <li>To send important service updates (no marketing without consent).</li>
           <li>To generate AI content personalised to your class and subject inputs.</li>
@@ -55,12 +55,12 @@ export default function PrivacyPolicy() {
 
       <section style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 18, fontWeight: 600 }}>8. Your Rights</h2>
-        <p>You have the right to access, correct, or delete your personal data. To exercise these rights, email us at <a href="mailto:avnishweb91@gmail.com" style={{ color: "#2563eb" }}>avnishweb91@gmail.com</a>.</p>
+        <p>You have the right to access, correct, or delete your personal data. To exercise these rights, email us at <a href="mailto:support@smartboard.co.in" style={{ color: "#2563eb" }}>support@smartboard.co.in</a>.</p>
       </section>
 
       <section style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 18, fontWeight: 600 }}>9. Children's Privacy</h2>
-        <p>TeacherAI is intended for use by teachers (adults). We do not knowingly collect personal data from children under 13.</p>
+        <p>SmartBoard AI is intended for use by teachers (adults). We do not knowingly collect personal data from children under 13.</p>
       </section>
 
       <section style={{ marginBottom: 28 }}>
@@ -70,7 +70,7 @@ export default function PrivacyPolicy() {
 
       <section style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 18, fontWeight: 600 }}>11. Contact</h2>
-        <p>For any privacy-related questions, contact us at <a href="mailto:avnishweb91@gmail.com" style={{ color: "#2563eb" }}>avnishweb91@gmail.com</a>.</p>
+        <p>For any privacy-related questions, contact us at <a href="mailto:support@smartboard.co.in" style={{ color: "#2563eb" }}>support@smartboard.co.in</a>.</p>
       </section>
     </div>
   );

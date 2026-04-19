@@ -32,7 +32,7 @@ public class EmailService {
             MimeMessageHelper h = new MimeMessageHelper(msg, true, "UTF-8");
             h.setFrom(from);
             h.setTo(toEmail);
-            h.setSubject("Welcome to TeacherCopilot!");
+            h.setSubject("Welcome to SmartBoard AI!");
             h.setText(buildWelcomeHtml(name), true);
             mailSender.send(msg);
             log.info("Welcome email sent to {}", toEmail);
@@ -49,7 +49,7 @@ public class EmailService {
             MimeMessageHelper h = new MimeMessageHelper(msg, true, "UTF-8");
             h.setFrom(from);
             h.setTo(toEmail);
-            h.setSubject("Payment Confirmed — TeacherCopilot " + plan + " Plan");
+            h.setSubject("Payment Confirmed — SmartBoard AI " + plan + " Plan");
             h.setText(buildReceiptHtml(name, plan, amountPaise), true);
             mailSender.send(msg);
             log.info("Payment receipt sent to {}", toEmail);
@@ -113,7 +113,7 @@ public class EmailService {
             <div style="font-family:sans-serif;max-width:560px;margin:auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
               <div style="background:linear-gradient(135deg,#1e3a8a,#3730a3);padding:32px 36px;text-align:center">
                 <div style="font-size:40px">🎓</div>
-                <h1 style="color:#fff;margin:12px 0 4px;font-size:24px">Welcome to TeacherCopilot!</h1>
+                <h1 style="color:#fff;margin:12px 0 4px;font-size:24px">Welcome to SmartBoard AI!</h1>
                 <p style="color:rgba(255,255,255,0.8);margin:0;font-size:15px">Your AI-powered teaching assistant</p>
               </div>
               <div style="padding:32px 36px">
@@ -127,13 +127,13 @@ public class EmailService {
                 </ul>
                 <p style="color:#475569;line-height:1.7">Need more? Upgrade to <strong>PRO at ₹199/month</strong> for unlimited access.</p>
                 <div style="text-align:center;margin:28px 0">
-                  <a href="https://teachercopilot.co.in" style="background:#2563eb;color:#fff;padding:13px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">
+                  <a href="https://smartboard.co.in/dashboard" style="background:#2563eb;color:#fff;padding:13px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">
                     Go to Dashboard →
                   </a>
                 </div>
               </div>
               <div style="background:#f8fafc;padding:16px 36px;text-align:center;font-size:12px;color:#94a3b8">
-                © 2025 TeacherCopilot · teachercopilot.co.in
+                © 2026 SmartBoard AI · smartboard.co.in
               </div>
             </div>
             """.formatted(name != null ? name : "Teacher");
@@ -183,15 +183,15 @@ public class EmailService {
                     <tr><td style="padding:6px 0;color:#64748b">Status</td><td style="text-align:right;font-weight:700;color:#059669">Confirmed</td></tr>
                   </table>
                 </div>
-                <p style="color:#475569">You now have <strong>unlimited access</strong> to all TeacherCopilot features.</p>
+                <p style="color:#475569">You now have <strong>unlimited access</strong> to all SmartBoard AI features.</p>
                 <div style="text-align:center;margin:28px 0">
-                  <a href="https://teachercopilot.co.in/dashboard" style="background:#2563eb;color:#fff;padding:13px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">
+                  <a href="https://smartboard.co.in/dashboard" style="background:#2563eb;color:#fff;padding:13px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">
                     Go to Dashboard →
                   </a>
                 </div>
               </div>
               <div style="background:#f8fafc;padding:16px 36px;text-align:center;font-size:12px;color:#94a3b8">
-                © 2025 TeacherCopilot · teachercopilot.co.in
+                © 2026 SmartBoard AI · smartboard.co.in
               </div>
             </div>
             """.formatted(name != null ? name : "Teacher", plan, amount);

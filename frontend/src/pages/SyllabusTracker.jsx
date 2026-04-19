@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
+import api from "../services/api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import SchoolLogoUpload from "../components/SchoolLogoUpload";
@@ -8,17 +9,7 @@ const GRADES = ["LKG","UKG","Class 1","Class 2","Class 3","Class 4","Class 5",
                 "Class 6","Class 7","Class 8","Class 9","Class 10","Class 11","Class 12"];
 const BOARDS = ["CBSE","ICSE","Bihar Board"];
 
-const STORAGE_KEY = "syllabus_tracker_v1";
-
-function load() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }
-}
-function save(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
 export default function SyllabusTracker() {
-  const [data, setData]         = useState(load);
   const [grade, setGrade]       = useState("Class 6");
   const [board, setBoard]       = useState("CBSE");
   const [subject, setSubject]   = useState("");
@@ -26,80 +17,152 @@ export default function SyllabusTracker() {
   const [logo, setLogo]         = useState(() => localStorage.getItem("school_logo") || null);
   const [activeSubject, setActiveSubject] = useState(null);
 
-  // key = "grade||board"
-  const gradeKey = `${grade}||${board}`;
-  const gradeData = data[gradeKey] || {};
-  const subjects = Object.keys(gradeData);
+  /* chaptersBySubject: { subjectName: [{id, name, done}] } */
+  const [chaptersBySubject, setChaptersBySubject] = useState({});
+  /* subjects from API + locally added empty subjects */
+  const [localSubjects, setLocalSubjects] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { save(data); }, [data]);
+  const subjects = [...new Set([...Object.keys(chaptersBySubject), ...localSubjects])];
+  const chapters = activeSubject ? (chaptersBySubject[activeSubject] || []) : [];
+
+  /* load whenever grade or board changes */
+  useEffect(() => {
+    loadChapters(grade, board);
+  }, [grade, board]); // eslint-disable-line
 
   useEffect(() => {
-    setActiveSubject(subjects[0] || null);
-  }, [gradeKey]);
+    setLocalSubjects([]);
+  }, [grade, board]);
 
-  const chapters = activeSubject ? (gradeData[activeSubject] || []) : [];
+  const loadChapters = async (g, b) => {
+    setLoading(true);
+    try {
+      const resp = await api.get(`/api/syllabus?grade=${encodeURIComponent(g)}&board=${encodeURIComponent(b)}`);
+      if (resp.data.length === 0) {
+        await migrateFromLocal(g, b);
+        const r2 = await api.get(`/api/syllabus?grade=${encodeURIComponent(g)}&board=${encodeURIComponent(b)}`);
+        applyChapters(r2.data, g, b);
+      } else {
+        applyChapters(resp.data, g, b);
+      }
+    } catch { /* API unavailable */ }
+    setLoading(false);
+  };
+
+  const applyChapters = (data, g, b) => {
+    const bySubject = {};
+    data.forEach(c => {
+      if (!bySubject[c.subject]) bySubject[c.subject] = [];
+      bySubject[c.subject].push({ id: c.id, name: c.chapterName, done: c.done });
+    });
+    setChaptersBySubject(bySubject);
+    setActiveSubject(prev => {
+      const keys = Object.keys(bySubject);
+      if (prev && bySubject[prev]) return prev;
+      return keys[0] || null;
+    });
+    setLocalSubjects(ls => ls.filter(s => !bySubject[s]));
+  };
+
+  const migrateFromLocal = async (g, b) => {
+    const stored = (() => { try { return JSON.parse(localStorage.getItem("syllabus_tracker_v1") || "{}"); } catch { return {}; } })();
+    const gradeKey = `${g}||${b}`;
+    const gradeData = stored[gradeKey];
+    if (!gradeData) return;
+
+    for (const [sub, chs] of Object.entries(gradeData)) {
+      if (!chs || !chs.length) continue;
+      const payload = chs.map((c, i) => ({ chapterName: c.name, done: c.done || false, sortOrder: i }));
+      await api.post(
+        `/api/syllabus/bulk?grade=${encodeURIComponent(g)}&board=${encodeURIComponent(b)}&subject=${encodeURIComponent(sub)}`,
+        payload
+      );
+    }
+
+    delete stored[gradeKey];
+    if (Object.keys(stored).length === 0) {
+      localStorage.removeItem("syllabus_tracker_v1");
+    } else {
+      localStorage.setItem("syllabus_tracker_v1", JSON.stringify(stored));
+    }
+  };
 
   /* ── add subject ── */
   const addSubject = (e) => {
     e.preventDefault();
     if (!subject.trim()) return;
     const s = subject.trim();
-    if (gradeData[s]) { setSubject(""); return; }
-    setData(prev => ({
-      ...prev,
-      [gradeKey]: { ...(prev[gradeKey] || {}), [s]: [] }
-    }));
+    if (subjects.includes(s)) { setSubject(""); return; }
+    setLocalSubjects(prev => [...prev, s]);
     setActiveSubject(s);
     setSubject("");
   };
 
-  const removeSubject = (s) => {
+  const removeSubject = async (s) => {
     if (!window.confirm(`Delete subject "${s}" and all its chapters?`)) return;
-    setData(prev => {
-      const copy = { ...prev };
-      const gd = { ...(copy[gradeKey] || {}) };
-      delete gd[s];
-      copy[gradeKey] = gd;
-      return copy;
+    if (localSubjects.includes(s)) {
+      setLocalSubjects(prev => prev.filter(x => x !== s));
+    } else {
+      try {
+        await api.post(
+          `/api/syllabus/bulk?grade=${encodeURIComponent(grade)}&board=${encodeURIComponent(board)}&subject=${encodeURIComponent(s)}`,
+          []
+        );
+        setChaptersBySubject(prev => {
+          const copy = { ...prev };
+          delete copy[s];
+          return copy;
+        });
+      } catch {}
+    }
+    setActiveSubject(prev => {
+      const remaining = subjects.filter(x => x !== s);
+      return remaining[0] || null;
     });
-    setActiveSubject(subjects.filter(x => x !== s)[0] || null);
   };
 
   /* ── add chapter ── */
-  const addChapter = (e) => {
+  const addChapter = async (e) => {
     e.preventDefault();
     if (!activeSubject || !newChapter.trim()) return;
-    const ch = { id: Date.now(), name: newChapter.trim(), done: false };
-    setData(prev => ({
-      ...prev,
-      [gradeKey]: {
-        ...(prev[gradeKey] || {}),
-        [activeSubject]: [...(prev[gradeKey]?.[activeSubject] || []), ch]
-      }
-    }));
-    setNewChapter("");
+    try {
+      const resp = await api.post("/api/syllabus", {
+        grade, board, subject: activeSubject,
+        chapterName: newChapter.trim(),
+        done: false,
+        sortOrder: chapters.length,
+      });
+      const newEntry = { id: resp.data.id, name: resp.data.chapterName, done: resp.data.done };
+      setChaptersBySubject(prev => ({
+        ...prev,
+        [activeSubject]: [...(prev[activeSubject] || []), newEntry]
+      }));
+      /* if was a local (empty) subject, move to persisted */
+      setLocalSubjects(prev => prev.filter(s => s !== activeSubject));
+      setNewChapter("");
+    } catch {}
   };
 
-  const toggleChapter = (id) => {
-    setData(prev => ({
-      ...prev,
-      [gradeKey]: {
-        ...(prev[gradeKey] || {}),
-        [activeSubject]: prev[gradeKey][activeSubject].map(c =>
-          c.id === id ? { ...c, done: !c.done } : c
-        )
-      }
-    }));
+  const toggleChapter = async (id) => {
+    try {
+      const resp = await api.patch(`/api/syllabus/${id}/toggle`);
+      const updated = { id: resp.data.id, name: resp.data.chapterName, done: resp.data.done };
+      setChaptersBySubject(prev => ({
+        ...prev,
+        [activeSubject]: prev[activeSubject].map(c => c.id === id ? updated : c)
+      }));
+    } catch {}
   };
 
-  const removeChapter = (id) => {
-    setData(prev => ({
-      ...prev,
-      [gradeKey]: {
-        ...(prev[gradeKey] || {}),
-        [activeSubject]: prev[gradeKey][activeSubject].filter(c => c.id !== id)
-      }
-    }));
+  const removeChapter = async (id) => {
+    try {
+      await api.delete(`/api/syllabus/${id}`);
+      setChaptersBySubject(prev => ({
+        ...prev,
+        [activeSubject]: prev[activeSubject].filter(c => c.id !== id)
+      }));
+    } catch {}
   };
 
   const pct = (chs) => {
@@ -108,7 +171,7 @@ export default function SyllabusTracker() {
   };
 
   const overallPct = () => {
-    const all = subjects.flatMap(s => gradeData[s] || []);
+    const all = subjects.flatMap(s => chaptersBySubject[s] || []);
     return pct(all);
   };
 
@@ -126,7 +189,8 @@ export default function SyllabusTracker() {
 
     let startY = 35;
     subjects.forEach(s => {
-      const chs = gradeData[s] || [];
+      const chs = chaptersBySubject[s] || [];
+      if (!chs.length) return;
       const p = pct(chs);
       const body = chs.map(c => [c.done ? "✓" : "○", c.name, c.done ? "Completed" : "Pending"]);
 
@@ -190,7 +254,7 @@ export default function SyllabusTracker() {
         </div>
 
         {/* Overall progress */}
-        {subjects.length > 0 && (
+        {subjects.length > 0 && !loading && (
           <div style={{ marginTop: 16, padding: "12px 16px", background: "#f8fafc", borderRadius: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Overall Completion — {grade}</span>
@@ -209,12 +273,14 @@ export default function SyllabusTracker() {
         <div>
           <div className="card" style={{ padding: "16px" }}>
             <p style={{ fontWeight: 700, fontSize: 13, color: "#0f172a", marginBottom: 12 }}>Subjects</p>
-            {subjects.length === 0 && (
+            {loading ? (
+              <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>Loading…</p>
+            ) : subjects.length === 0 ? (
               <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>No subjects yet.</p>
-            )}
+            ) : null}
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
               {subjects.map(s => {
-                const p = pct(gradeData[s] || []);
+                const p = pct(chaptersBySubject[s] || []);
                 const isActive = activeSubject === s;
                 return (
                   <div key={s}

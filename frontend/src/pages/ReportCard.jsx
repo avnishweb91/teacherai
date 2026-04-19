@@ -1,7 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layout/DashboardLayout";
 import axios from "axios";
+import api from "../services/api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import SchoolLogoUpload from "../components/SchoolLogoUpload";
@@ -26,16 +27,10 @@ const GRADE_LABEL = (pct) => {
 const token = () => localStorage.getItem("token");
 const API   = `${import.meta.env.VITE_API_URL || "http://localhost:8080"}/api/reportcard/remark`;
 
-/* ── Read attendance % matching the same logic as AttendanceManager monthly report ──
-   Denominator = ALL school days (Mon–Sat) in every month that has any records in forYear.
-   Filters by className+section first; falls back to roll-only for older records. ── */
-function lookupAttendance(rollNo, forYear, forClassName, forSection) {
+/* ── Compute attendance % from pre-fetched API data ── */
+function lookupAttendance(rollNo, forYear, forClassName, forSection, attStudents, attRecords) {
   try {
-    const attStudents = JSON.parse(localStorage.getItem("att_students") || "[]");
-    const attRecords  = JSON.parse(localStorage.getItem("att_records")  || "{}");
-
-    // 1. Find the student — prefer exact class+section match, fall back to roll only
-    let attStudent =
+    const attStudent =
       attStudents.find(s =>
         String(s.rollNo) === String(rollNo) &&
         s.className === forClassName &&
@@ -48,29 +43,23 @@ function lookupAttendance(rollNo, forYear, forClassName, forSection) {
     const sid = String(attStudent.id);
     const yearStr = String(forYear);
 
-    // 2. Collect every "YYYY-MM" that has at least one record in forYear
     const activeMonths = new Set();
     Object.keys(attRecords).forEach(dateKey => {
       if (dateKey.startsWith(yearStr)) activeMonths.add(dateKey.slice(0, 7));
     });
     if (activeMonths.size === 0) return null;
 
-    // 3. For each active month count ALL school days (Mon–Sat) as denominator,
-    //    same as buildReport() in AttendanceManager
     let present = 0, totalSchoolDays = 0;
-
     activeMonths.forEach(ym => {
       const [y, m] = ym.split("-").map(Number);
       const lastDay = new Date(y, m, 0).getDate();
-
       for (let d = 1; d <= lastDay; d++) {
-        if (new Date(y, m - 1, d).getDay() === 0) continue; // skip Sunday
+        if (new Date(y, m - 1, d).getDay() === 0) continue;
         totalSchoolDays++;
-
         const key = `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
         const dayRec = attRecords[key];
         if (dayRec) {
-          const st = dayRec[sid] ?? dayRec[attStudent.id];
+          const st = dayRec[sid];
           if (st === "P" || st === "L") present++;
         }
       }
@@ -106,6 +95,15 @@ export default function ReportCard() {
   const [newName,      setNewName]      = useState("");
   const [newRoll,      setNewRoll]      = useState("");
 
+  /* ── attendance lookup data (from API) ── */
+  const [attStudents,   setAttStudents]   = useState([]);
+  const [attRecordsYear, setAttRecordsYear] = useState({});
+
+  useEffect(() => {
+    api.get("/api/attendance/students").then(r => setAttStudents(r.data)).catch(() => {});
+    api.get(`/api/attendance/records/year?year=${year}`).then(r => setAttRecordsYear(r.data)).catch(() => {});
+  }, [year]); // eslint-disable-line
+
   /* ── ui ── */
   const [step,         setStep]         = useState(1); // 1=Setup 2=Students 3=Remarks
   const [generating,   setGenerating]   = useState(false);
@@ -134,7 +132,7 @@ export default function ReportCard() {
     const roll = newRoll || String(students.length + 1);
     const marks = {};
     subjects.forEach(s => { marks[s] = ""; });
-    const autoAtt = lookupAttendance(roll, year, className, section);
+    const autoAtt = lookupAttendance(roll, year, className, section, attStudents, attRecordsYear);
     setStudents([...students, {
       id, rollNo: roll, name: newName.trim(), marks,
       attendance: autoAtt !== null ? String(autoAtt) : "",
@@ -149,7 +147,7 @@ export default function ReportCard() {
   /* ── sync all students' attendance from att_records ── */
   const syncAttendance = () => {
     setStudents(prev => prev.map(s => {
-      const autoAtt = lookupAttendance(s.rollNo, year, className, section);
+      const autoAtt = lookupAttendance(s.rollNo, year, className, section, attStudents, attRecordsYear);
       return autoAtt !== null
         ? { ...s, attendance: String(autoAtt), attAutoFilled: true }
         : s;

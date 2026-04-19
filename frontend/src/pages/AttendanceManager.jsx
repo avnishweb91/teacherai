@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
+import api from "../services/api";
 import jsPDF from "jspdf";
 import SchoolLogoUpload from "../components/SchoolLogoUpload";
 import autoTable from "jspdf-autotable";
@@ -15,26 +16,11 @@ const STATUS   = { P: "Present", A: "Absent", L: "Late" };
 const STATUS_COLOR = { P: "#dcfce7", A: "#fee2e2", L: "#fef9c3", "": "#f8fafc" };
 const STATUS_TEXT  = { P: "#16a34a", A: "#dc2626", L: "#ca8a04", "": "#94a3b8" };
 
-/* ─────────────── storage helpers ─────────────── */
-const KEY_STUDENTS = "att_students";
-const KEY_RECORDS  = "att_records";
-
-const loadStudents = () => {
-  try { return JSON.parse(localStorage.getItem(KEY_STUDENTS) || "[]"); } catch { return []; }
-};
-const loadRecords  = () => {
-  try { return JSON.parse(localStorage.getItem(KEY_RECORDS)  || "{}"); } catch { return {}; }
-};
-const saveStudents = (s) => localStorage.setItem(KEY_STUDENTS, JSON.stringify(s));
-const saveRecords  = (r) => localStorage.setItem(KEY_RECORDS,  JSON.stringify(r));
-
 /* ─────────────── date helpers ─────────────── */
-// Use local date parts to avoid UTC off-by-one on IST (+5:30)
 const toLocalDateKey = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-const daysInMonth = (y, m) => new Date(y, m, 0).getDate(); // m is 1-based
+const daysInMonth = (y, m) => new Date(y, m, 0).getDate();
 const dayName   = (y, m, d) => ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date(y, m-1, d).getDay()];
-// Only Sunday is a non-school day — most Indian schools have Saturday classes
 const isHoliday = (y, m, d) => new Date(y, m-1, d).getDay() === 0;
 
 /* ═══════════════════════════════════════════
@@ -42,7 +28,7 @@ const isHoliday = (y, m, d) => new Date(y, m-1, d).getDay() === 0;
 ═══════════════════════════════════════════ */
 export default function AttendanceManager() {
   const now   = new Date();
-  const today = toLocalDateKey(); // local date key, recomputed each render
+  const today = toLocalDateKey();
 
   /* ── class config ── */
   const [logo, setLogo] = useState(() => localStorage.getItem("school_logo") || null);
@@ -50,34 +36,117 @@ export default function AttendanceManager() {
   const [section,   setSection]   = useState(() => localStorage.getItem("att_section") || "A");
 
   /* ── roster ── */
-  const [students, setStudents] = useState(loadStudents);
+  const [students, setStudents] = useState([]);
   const [newName,  setNewName]  = useState("");
   const [newRoll,  setNewRoll]  = useState("");
+  const [loading,  setLoading]  = useState(true);
 
   /* ── daily attendance ── */
   const [selDate,  setSelDate]  = useState(() => toLocalDateKey());
-  const [records,  setRecords]  = useState(loadRecords);
+  const [records,  setRecords]  = useState({});
+  const [loadingRecords, setLoadingRecords] = useState(false);
 
   /* ── report ── */
   const [repMonth, setRepMonth] = useState(now.getMonth() + 1);
   const [repYear,  setRepYear]  = useState(now.getFullYear());
 
   /* ── tab ── */
-  const [tab, setTab] = useState("mark"); // roster | mark | report
+  const [tab, setTab] = useState("mark");
 
-  /* persist class */
+  /* refs */
+  const csvInputRef    = useRef();
+  const fetchedDates   = useRef(new Set());
+  const migrationRan   = useRef(false);
+
+  /* persist class prefs */
   useEffect(() => { localStorage.setItem("att_class",   className); }, [className]);
   useEffect(() => { localStorage.setItem("att_section", section);   }, [section]);
 
+  /* ── load students on mount ── */
+  useEffect(() => { initStudents(); }, []); // eslint-disable-line
+
+  const initStudents = async () => {
+    setLoading(true);
+    try {
+      const resp = await api.get("/api/attendance/students");
+      if (resp.data.length === 0 && !migrationRan.current) {
+        migrationRan.current = true;
+        const migrated = await migrateStudentsFromLocal();
+        if (migrated) {
+          const r2 = await api.get("/api/attendance/students");
+          setStudents(r2.data);
+        }
+      } else {
+        setStudents(resp.data);
+      }
+    } catch { /* API unavailable */ }
+    setLoading(false);
+  };
+
+  const migrateStudentsFromLocal = async () => {
+    const localStudents = (() => { try { return JSON.parse(localStorage.getItem("att_students") || "[]"); } catch { return []; } })();
+    const localRecords  = (() => { try { return JSON.parse(localStorage.getItem("att_records")  || "{}"); } catch { return {}; } })();
+    if (!localStudents.length) return false;
+
+    const payload = localStudents.map(s => ({ name: s.name, rollNo: s.rollNo, className: s.className, section: s.section }));
+    const resp = await api.post("/api/attendance/students/bulk", payload);
+    const newStudents = resp.data;
+
+    const idMap = {};
+    localStudents.forEach(old => {
+      const match = newStudents.find(n => n.name === old.name && n.className === old.className && n.section === old.section);
+      if (match) idMap[String(old.id)] = String(match.id);
+    });
+
+    for (const [dateStr, dayRecords] of Object.entries(localRecords)) {
+      const remapped = {};
+      for (const [oldId, status] of Object.entries(dayRecords)) {
+        const newId = idMap[oldId];
+        if (newId && status) remapped[newId] = status;
+      }
+      if (Object.keys(remapped).length) {
+        await api.post("/api/attendance/records", { date: dateStr, records: remapped });
+      }
+    }
+
+    try { localStorage.setItem("att_id_map", JSON.stringify(idMap)); } catch {}
+    localStorage.removeItem("att_records");
+    localStorage.setItem("att_migrated", "true");
+    return true;
+  };
+
+  /* ── load records for selected date ── */
+  const fetchRecordsForDate = useCallback(async (date) => {
+    if (fetchedDates.current.has(date)) return;
+    fetchedDates.current.add(date);
+    try {
+      const resp = await api.get(`/api/attendance/records?date=${date}`);
+      setRecords(prev => ({ ...prev, [date]: resp.data }));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (tab === "mark" && selDate) fetchRecordsForDate(selDate);
+  }, [selDate, tab, fetchRecordsForDate]);
+
+  /* ── load month records for report ── */
+  useEffect(() => {
+    if (tab !== "report") return;
+    setLoadingRecords(true);
+    api.get(`/api/attendance/records/month?year=${repYear}&month=${repMonth}`)
+      .then(r => setRecords(prev => ({ ...prev, ...r.data })))
+      .catch(() => {})
+      .finally(() => setLoadingRecords(false));
+  }, [repYear, repMonth, tab]);
+
   /* ─── CSV import ─── */
-  const csvInputRef = useRef();
   const importCSV = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const lines = ev.target.result.split(/\r?\n/).filter(l => l.trim());
-      const added = [];
+      const toAdd = [];
       let nextRoll = students.length + 1;
       lines.forEach(line => {
         const parts = line.split(",").map(p => p.replace(/^"|"$/g, "").trim());
@@ -85,54 +154,60 @@ export default function AttendanceManager() {
         const name = parts[1] || parts[0];
         if (!name || /^(roll|name|student)/i.test(name)) return;
         if (students.some(s => s.name.toLowerCase() === name.toLowerCase())) return;
-        added.push({ id: Date.now() + Math.random(), rollNo: roll, name, className, section });
+        toAdd.push({ rollNo: roll, name, className, section });
         nextRoll++;
       });
-      if (added.length === 0) return alert("No new students found in CSV.");
-      const list = [...students, ...added];
-      setStudents(list); saveStudents(list);
-      alert(`Imported ${added.length} student(s) successfully.`);
+      if (!toAdd.length) return alert("No new students found in CSV.");
+      try {
+        const resp = await api.post("/api/attendance/students/bulk", toAdd);
+        setStudents(prev => [...prev, ...resp.data]);
+        alert(`Imported ${resp.data.length} student(s) successfully.`);
+      } catch { alert("Import failed. Please try again."); }
     };
     reader.readAsText(file);
     e.target.value = "";
   };
 
   /* ─── Roster ops ─── */
-  const addStudent = (e) => {
+  const addStudent = async (e) => {
     e.preventDefault();
     if (!newName.trim()) return;
-    const id   = Date.now();
     const roll = newRoll || String(students.length + 1);
-    const list = [...students, { id, rollNo: roll, name: newName.trim(), className, section }];
-    setStudents(list); saveStudents(list);
-    setNewName(""); setNewRoll("");
+    try {
+      const resp = await api.post("/api/attendance/students", { name: newName.trim(), rollNo: roll, className, section });
+      setStudents(prev => [...prev, resp.data]);
+      setNewName(""); setNewRoll("");
+    } catch {}
   };
 
-  const removeStudent = (id) => {
-    const list = students.filter(s => s.id !== id);
-    setStudents(list); saveStudents(list);
+  const removeStudent = async (id) => {
+    try {
+      await api.delete(`/api/attendance/students/${id}`);
+      setStudents(prev => prev.filter(s => s.id !== id));
+    } catch {}
   };
 
   /* ─── Attendance ops ─── */
   const getStatus = (studentId, dateKey) =>
-    records[dateKey]?.[String(studentId)] || records[dateKey]?.[studentId] || "";
+    records[dateKey]?.[String(studentId)] || "";
 
-  const setStatus = useCallback((studentId, dateKey, status) => {
-    setRecords(prev => {
-      const next = { ...prev, [dateKey]: { ...(prev[dateKey] || {}), [String(studentId)]: status } };
-      saveRecords(next);
-      return next;
-    });
+  const setStatus = useCallback(async (studentId, dateKey, status) => {
+    setRecords(prev => ({
+      ...prev,
+      [dateKey]: { ...(prev[dateKey] || {}), [String(studentId)]: status }
+    }));
+    try {
+      await api.post("/api/attendance/records", { date: dateKey, records: { [String(studentId)]: status } });
+    } catch {}
   }, []);
 
-  const markAll = (status, dateKey) => {
-    setRecords(prev => {
-      const day = {};
-      students.forEach(s => { day[String(s.id)] = status; });
-      const next = { ...prev, [dateKey]: day };
-      saveRecords(next);
-      return next;
-    });
+  const markAll = async (status, dateKey) => {
+    const day = {};
+    students.forEach(s => { day[String(s.id)] = status; });
+    setRecords(prev => ({ ...prev, [dateKey]: day }));
+    try {
+      await api.post("/api/attendance/records", { date: dateKey, records: day });
+    } catch {}
   };
 
   /* ─── Report calculations ─── */
@@ -150,7 +225,7 @@ export default function AttendanceManager() {
         let present = 0, absent = 0, late = 0;
         const cells = schoolDays.map(d => {
           const key = `${repYear}-${String(repMonth).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-          const st = records[key]?.[String(s.id)] || records[key]?.[s.id] || "";
+          const st = records[key]?.[String(s.id)] || "";
           if (st === "P") present++;
           else if (st === "A") absent++;
           else if (st === "L") { present++; late++; }
@@ -209,7 +284,7 @@ export default function AttendanceManager() {
     });
 
     doc.setFontSize(7.5); doc.setTextColor(160);
-    doc.text("Generated by TeacherAI", w/2, doc.internal.pageSize.getHeight()-5, { align:"center" });
+    doc.text("Generated by SmartBoard AI", w/2, doc.internal.pageSize.getHeight()-5, { align:"center" });
     doc.save(`Attendance_${className}_${section}_${mName}_${repYear}.pdf`);
   };
 
@@ -317,7 +392,9 @@ export default function AttendanceManager() {
             </button>
           </div>
 
-          {students.length === 0 ? (
+          {loading ? (
+            <div style={{ textAlign:"center", color:"#94a3b8", padding:"32px 0" }}>Loading students…</div>
+          ) : students.length === 0 ? (
             <div style={{ textAlign:"center", color:"#94a3b8", padding:"32px 0" }}>
               <div style={{ fontSize:36, marginBottom:8 }}>👥</div>
               <p>No students yet. Add students above.</p>
@@ -377,7 +454,11 @@ export default function AttendanceManager() {
             )}
           </div>
 
-          {students.length === 0 ? (
+          {loading ? (
+            <div className="card" style={{ textAlign:"center", color:"#94a3b8", padding:"40px 24px" }}>
+              Loading students…
+            </div>
+          ) : students.length === 0 ? (
             <div className="card" style={{ textAlign:"center", color:"#94a3b8", padding:"40px 24px" }}>
               <div style={{ fontSize:36, marginBottom:8 }}>👥</div>
               <p>Add students in the <b>Roster</b> tab first.</p>
@@ -468,7 +549,11 @@ export default function AttendanceManager() {
             </div>
           </div>
 
-          {students.length === 0 ? (
+          {loading || loadingRecords ? (
+            <div className="card" style={{ textAlign:"center", color:"#94a3b8", padding:"40px 24px" }}>
+              Loading report…
+            </div>
+          ) : students.length === 0 ? (
             <div className="card" style={{ textAlign:"center", color:"#94a3b8", padding:"40px 24px" }}>
               <div style={{ fontSize:36, marginBottom:8 }}>📊</div>
               <p>Add students in the <b>Roster</b> tab first.</p>

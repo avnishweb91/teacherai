@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
+import api from "../services/api";
 import jsPDF from "jspdf";
 import SchoolLogoUpload from "../components/SchoolLogoUpload";
 
@@ -38,21 +39,15 @@ const TEMPLATES = [
   },
 ];
 
-const STUDENTS_KEY  = "att_students";
-const CONTACTS_KEY  = "parent_contacts_v1";
-
-const loadStudents = () => { try { return JSON.parse(localStorage.getItem(STUDENTS_KEY) || "[]"); } catch { return []; } };
-const loadContacts = () => { try { return JSON.parse(localStorage.getItem(CONTACTS_KEY) || "{}"); } catch { return {}; } };
-const saveContacts = (c) => localStorage.setItem(CONTACTS_KEY, JSON.stringify(c));
-
 export default function ParentPortal() {
   const [grade, setGrade]     = useState("Class 6");
   const [section, setSection] = useState("A");
   const [logo, setLogo]       = useState(() => localStorage.getItem("school_logo") || null);
   const [tab, setTab]         = useState("contacts");
-  const [students]            = useState(loadStudents);
-  const [contacts, setContacts] = useState(loadContacts);
+  const [students, setStudents] = useState([]);
+  const [contacts, setContacts] = useState({});
   const [schoolName, setSchoolName] = useState(() => localStorage.getItem("parent_school_name") || "");
+  const [loading, setLoading]  = useState(true);
 
   const [tplIdx, setTplIdx]   = useState(0);
   const [message, setMessage] = useState(TEMPLATES[0].body);
@@ -60,6 +55,73 @@ export default function ParentPortal() {
   const [extraTime, setExtraTime] = useState("10:00 AM");
   const [generated, setGenerated] = useState([]);
   const [copied, setCopied]   = useState(null);
+
+  const pendingSaves = useRef({});
+  const saveTimers   = useRef({});
+  const migrationRan = useRef(false);
+
+  useEffect(() => { initData(); }, []); // eslint-disable-line
+
+  const initData = async () => {
+    setLoading(true);
+    try {
+      const [studentsResp, contactsResp] = await Promise.all([
+        api.get("/api/attendance/students"),
+        api.get("/api/parent-contacts"),
+      ]);
+      setStudents(studentsResp.data);
+
+      const contactMap = {};
+      contactsResp.data.forEach(c => {
+        contactMap[String(c.studentId)] = { parentName: c.parentName, phone: c.phone, email: c.email };
+      });
+
+      if (contactsResp.data.length === 0 && !migrationRan.current) {
+        migrationRan.current = true;
+        const migrated = await migrateContactsFromLocal(studentsResp.data);
+        if (migrated) {
+          const r2 = await api.get("/api/parent-contacts");
+          const map2 = {};
+          r2.data.forEach(c => {
+            map2[String(c.studentId)] = { parentName: c.parentName, phone: c.phone, email: c.email };
+          });
+          setContacts(map2);
+        } else {
+          setContacts(contactMap);
+        }
+      } else {
+        setContacts(contactMap);
+      }
+    } catch { /* API unavailable */ }
+    setLoading(false);
+  };
+
+  const migrateContactsFromLocal = async (apiStudents) => {
+    const localContacts = (() => { try { return JSON.parse(localStorage.getItem("parent_contacts_v1") || "{}"); } catch { return {}; } })();
+    if (!Object.keys(localContacts).length) return false;
+
+    let idMap = (() => { try { return JSON.parse(localStorage.getItem("att_id_map") || "null"); } catch { return null; } })();
+    if (!idMap) {
+      const localStudents = (() => { try { return JSON.parse(localStorage.getItem("att_students") || "[]"); } catch { return []; } })();
+      if (!localStudents.length) return false;
+      idMap = {};
+      localStudents.forEach(old => {
+        const match = apiStudents.find(n => n.name === old.name && n.className === old.className && n.section === old.section);
+        if (match) idMap[String(old.id)] = String(match.id);
+      });
+    }
+
+    for (const [oldId, contact] of Object.entries(localContacts)) {
+      const newId = idMap[oldId];
+      if (!newId || (!contact.parentName && !contact.phone && !contact.email)) continue;
+      try { await api.put(`/api/parent-contacts/${newId}`, contact); } catch {}
+    }
+
+    localStorage.removeItem("parent_contacts_v1");
+    localStorage.removeItem("att_id_map");
+    localStorage.removeItem("att_students");
+    return true;
+  };
 
   useEffect(() => {
     setMessage(TEMPLATES[tplIdx].body);
@@ -75,15 +137,23 @@ export default function ParentPortal() {
     .sort((a, b) => Number(a.rollNo) - Number(b.rollNo));
 
   const updateContact = (sid, field, value) => {
+    const sidStr = String(sid);
     setContacts(prev => {
-      const next = { ...prev, [sid]: { ...(prev[sid] || {}), [field]: value } };
-      saveContacts(next);
-      return next;
+      const updated = { ...prev, [sidStr]: { ...(prev[sidStr] || {}), [field]: value } };
+      pendingSaves.current[sidStr] = updated[sidStr];
+      return updated;
     });
+    clearTimeout(saveTimers.current[sidStr]);
+    saveTimers.current[sidStr] = setTimeout(async () => {
+      const data = pendingSaves.current[sidStr];
+      if (data) {
+        try { await api.put(`/api/parent-contacts/${sidStr}`, data); } catch {}
+      }
+    }, 800);
   };
 
   const resolve = (tpl, student) => {
-    const c = contacts[student.id] || {};
+    const c = contacts[String(student.id)] || {};
     const dateStr = extraDate
       ? new Date(extraDate + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
       : "[DATE]";
@@ -100,7 +170,7 @@ export default function ParentPortal() {
   const generateMessages = () => {
     setGenerated(classStudents.map(s => ({
       student: s,
-      contact: contacts[s.id] || {},
+      contact: contacts[String(s.id)] || {},
       text: resolve(message, s),
     })));
   };
@@ -217,7 +287,9 @@ export default function ParentPortal() {
             <span style={{ fontSize: 13, color: "#64748b" }}>{classStudents.length} students</span>
           </div>
 
-          {classStudents.length === 0 ? (
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "#94a3b8" }}>Loading…</div>
+          ) : classStudents.length === 0 ? (
             <div style={{ textAlign: "center", padding: "40px 0", color: "#94a3b8" }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>👥</div>
               <p>No students found for {grade} {section}.<br />Add students in the Attendance Manager first.</p>
@@ -225,7 +297,7 @@ export default function ParentPortal() {
           ) : (
             <>
               <p style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
-                Changes are saved automatically. Parent contacts are stored on this device.
+                Changes are saved automatically to the cloud.
               </p>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -240,7 +312,7 @@ export default function ParentPortal() {
                   </thead>
                   <tbody>
                     {classStudents.map(s => {
-                      const c = contacts[s.id] || {};
+                      const c = contacts[String(s.id)] || {};
                       return (
                         <tr key={s.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                           <td style={{ ...td, textAlign: "center", color: "#64748b", fontWeight: 600 }}>{s.rollNo}</td>

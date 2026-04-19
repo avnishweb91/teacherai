@@ -256,12 +256,12 @@ export default function AuthPage() {
 
         {/* ── Footer ── */}
         <div style={{ marginTop: 28, textAlign: "center", borderTop: "1px solid #f1f5f9", paddingTop: 18, width: "100%", maxWidth: 420 }}>
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginBottom: 12 }}>
-            <Link to="/privacy" style={{ fontSize: 12, color: "#64748b", textDecoration: "none", fontWeight: 500 }}>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <Link to="/privacy" className="auth-legal-link privacy">
               Privacy Policy
             </Link>
-            <span style={{ color: "#cbd5e1", fontSize: 14 }}>|</span>
-            <Link to="/terms" style={{ fontSize: 12, color: "#64748b", textDecoration: "none", fontWeight: 500 }}>
+            <span style={{ color: "#cbd5e1", fontSize: 14, fontWeight: 300 }}>|</span>
+            <Link to="/terms" className="auth-legal-link terms">
               Terms &amp; Conditions
             </Link>
           </div>

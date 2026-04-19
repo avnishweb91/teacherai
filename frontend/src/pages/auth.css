@@ -708,6 +708,45 @@
   .tour-desc  { font-size: 13.5px; }
 }
 
+/* ── Legal footer links ──────────────────────────────────────── */
+.auth-legal-link {
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: 20px;
+  transition: all 0.22s ease;
+  display: inline-block;
+}
+
+.auth-legal-link.privacy {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.09);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.auth-legal-link.privacy:hover {
+  color: #fff;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.auth-legal-link.terms {
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.09);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.auth-legal-link.terms:hover {
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+}
+
 /* ── Google Sign-In ─────────────────────────────────────────── */
 .google-signin-wrap {
   margin-bottom: 4px;

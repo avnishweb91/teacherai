@@ -45,3 +45,6 @@ frontend/.env.local
 .DS_Store
 Thumbs.db
 *.log
+
+### Private developer docs ###
+README.md

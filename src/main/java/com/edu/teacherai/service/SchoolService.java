@@ -69,9 +69,46 @@ public class SchoolService {
         userRepo.save(admin);
 
         emailService.sendWelcome(admin.getEmail(), admin.getName());
+        emailService.sendNewSchoolAlert(school.getName(), req.getAdminEmail(), req.getAdminName(), req.getPhone());
 
         String jwt = jwtUtil.generateToken(admin.getMobile(), admin.getRole());
         return new AuthResponse(jwt, admin, "LOGIN");
+    }
+
+    @Transactional
+    public void activateSchool(Long schoolId) {
+        School school = schoolRepo.findById(schoolId)
+                .orElseThrow(() -> new RuntimeException("School not found"));
+        school.setSubscriptionStatus("ACTIVE");
+        school.setTrialEndsAt(null);
+        schoolRepo.save(school);
+        // Ensure all teachers under this school have SCHOOL plan
+        userRepo.findBySchoolId(schoolId).forEach(u -> {
+            u.setPlanType("SCHOOL");
+            userRepo.save(u);
+        });
+    }
+
+    public List<Map<String, Object>> getAllSchools() {
+        return schoolRepo.findAll().stream()
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .map(s -> {
+                    long teacherCount = userRepo.countBySchoolId(s.getId());
+                    // Auto-expire if trial ended
+                    boolean expired = "TRIAL".equals(s.getSubscriptionStatus())
+                            && s.getTrialEndsAt() != null
+                            && s.getTrialEndsAt().isBefore(java.time.LocalDateTime.now());
+                    Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("id",                 s.getId());
+                    m.put("name",               s.getName());
+                    m.put("adminEmail",         s.getAdminEmail());
+                    m.put("phone",              s.getPhone() != null ? s.getPhone() : "");
+                    m.put("subscriptionStatus", expired ? "EXPIRED" : s.getSubscriptionStatus());
+                    m.put("trialEndsAt",        s.getTrialEndsAt() != null ? s.getTrialEndsAt().toLocalDate().toString() : null);
+                    m.put("teacherCount",       teacherCount);
+                    m.put("createdAt",          s.getCreatedAt().toLocalDate().toString());
+                    return m;
+                }).toList();
     }
 
     public Map<String, Object> getSchoolDashboard(Long schoolId) {
@@ -93,13 +130,30 @@ public class SchoolService {
         }
 
         Map<String, Object> result = new HashMap<>();
+        // Auto-expire trial
+        if ("TRIAL".equals(school.getSubscriptionStatus())
+                && school.getTrialEndsAt() != null
+                && school.getTrialEndsAt().isBefore(java.time.LocalDateTime.now())) {
+            school.setSubscriptionStatus("EXPIRED");
+            schoolRepo.save(school);
+        }
+
+        long daysLeft = 0;
+        if ("TRIAL".equals(school.getSubscriptionStatus()) && school.getTrialEndsAt() != null) {
+            daysLeft = java.time.temporal.ChronoUnit.DAYS.between(
+                    java.time.LocalDate.now(), school.getTrialEndsAt().toLocalDate());
+        }
+
         result.put("school", Map.of(
                 "id", school.getId(),
                 "name", school.getName(),
                 "address", school.getAddress() != null ? school.getAddress() : "",
                 "phone", school.getPhone() != null ? school.getPhone() : "",
                 "inviteCode", school.getInviteCode(),
-                "createdAt", school.getCreatedAt()
+                "createdAt", school.getCreatedAt(),
+                "subscriptionStatus", school.getSubscriptionStatus(),
+                "trialDaysLeft", Math.max(daysLeft, 0),
+                "trialTeacherLimit", 5
         ));
         result.put("teacherCount", teachers.size());
         result.put("teachers", teachers.stream().map(t -> Map.of(

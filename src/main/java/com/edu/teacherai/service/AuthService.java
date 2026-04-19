@@ -156,6 +156,25 @@ public class AuthService {
         if (req.getInviteCode() != null && !req.getInviteCode().isBlank()) {
             com.edu.teacherai.entity.School school = schoolRepo.findByInviteCode(req.getInviteCode().trim().toUpperCase())
                     .orElseThrow(() -> new RuntimeException("Invalid invite code"));
+
+            // Expire trial if time is up
+            if ("TRIAL".equals(school.getSubscriptionStatus())
+                    && school.getTrialEndsAt() != null
+                    && school.getTrialEndsAt().isBefore(LocalDateTime.now())) {
+                school.setSubscriptionStatus("EXPIRED");
+                schoolRepo.save(school);
+            }
+
+            if ("EXPIRED".equals(school.getSubscriptionStatus())) {
+                throw new RuntimeException("This school's trial has expired. Please ask your school admin to upgrade the plan.");
+            }
+            if ("TRIAL".equals(school.getSubscriptionStatus())) {
+                long teacherCount = userRepo.countBySchoolId(school.getId());
+                if (teacherCount >= 5) {
+                    throw new RuntimeException("This school has reached the 5-teacher trial limit. Please ask your school admin to upgrade the plan.");
+                }
+            }
+
             schoolId = school.getId();
             planType = "SCHOOL";
         }

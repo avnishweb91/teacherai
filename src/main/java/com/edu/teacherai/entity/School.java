@@ -27,12 +27,18 @@ public class School {
     @Column(nullable = false)
     private String planType = "SCHOOL";
 
+    @Column(nullable = false)
+    private String subscriptionStatus = "TRIAL"; // TRIAL / ACTIVE / EXPIRED
+
+    private LocalDateTime trialEndsAt;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     public School() {
         this.createdAt = LocalDateTime.now();
         this.inviteCode = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        this.trialEndsAt = LocalDateTime.now().plusDays(7);
     }
 
     public Long getId() { return id; }
@@ -49,4 +55,8 @@ public class School {
     public String getPlanType() { return planType; }
     public void setPlanType(String planType) { this.planType = planType; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getSubscriptionStatus() { return subscriptionStatus; }
+    public void setSubscriptionStatus(String subscriptionStatus) { this.subscriptionStatus = subscriptionStatus; }
+    public LocalDateTime getTrialEndsAt() { return trialEndsAt; }
+    public void setTrialEndsAt(LocalDateTime trialEndsAt) { this.trialEndsAt = trialEndsAt; }
 }

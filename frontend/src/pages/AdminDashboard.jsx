@@ -84,11 +84,14 @@ export default function AdminDashboard() {
   const [stats,   setStats]   = useState(null);
   const [users,   setUsers]   = useState([]);
   const [usage,   setUsage]   = useState(null);
+  const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState("");
+  const [tab,     setTab]     = useState("users"); // users | schools
   const [search,  setSearch]  = useState("");
   const [planFilter, setPlanFilter] = useState("ALL");
   const [usageDays, setUsageDays]   = useState(7);
+  const [activating, setActivating] = useState(null);
 
   useEffect(() => { loadAll(); }, []);
   useEffect(() => { loadUsage(); }, [usageDays]);
@@ -96,18 +99,33 @@ export default function AdminDashboard() {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [s, u, g] = await Promise.all([
+      const [s, u, g, sc] = await Promise.all([
         api.get("/api/admin/stats"),
         api.get("/api/admin/users"),
         api.get(`/api/admin/usage?days=${usageDays}`),
+        api.get("/api/admin/schools"),
       ]);
       setStats(s.data);
       setUsers(u.data);
       setUsage(g.data);
+      setSchools(sc.data);
     } catch (e) {
       setError(e.response?.status === 403 ? "Access denied. Admin only." : "Failed to load admin data.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const activateSchool = async (id, name) => {
+    if (!window.confirm(`Activate "${name}"? This marks them as paid and removes the trial limit.`)) return;
+    setActivating(id);
+    try {
+      await api.post(`/api/admin/schools/${id}/activate`);
+      setSchools(prev => prev.map(s => s.id === id ? { ...s, subscriptionStatus: "ACTIVE", trialEndsAt: null } : s));
+    } catch {
+      alert("Failed to activate school.");
+    } finally {
+      setActivating(null);
     }
   };
 
@@ -157,6 +175,16 @@ export default function AdminDashboard() {
         <StatCard icon="📅" label="New This Week"   value={stats.newThisWeek}   color="#dc2626" />
       </div>
 
+      {/* ── Tab switcher ── */}
+      <div className="auth-tabs" style={{ maxWidth: 320, marginBottom: 24 }}>
+        <button className={`auth-tab ${tab === "users" ? "active" : ""}`} onClick={() => setTab("users")}>
+          👥 Users
+        </button>
+        <button className={`auth-tab ${tab === "schools" ? "active" : ""}`} onClick={() => setTab("schools")}>
+          🏫 Schools ({schools.length})
+        </button>
+      </div>
+
       {/* ── Usage analytics ── */}
       <div className="card" style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
@@ -175,8 +203,74 @@ export default function AdminDashboard() {
         <UsageChart dates={usage?.dates} series={usage?.series} />
       </div>
 
+      {/* ── Schools table ── */}
+      {tab === "schools" && (
+        <div className="card">
+          <p style={{ fontWeight: 700, fontSize: 15, color: "#0f172a", marginBottom: 16 }}>
+            Registered Schools <span style={{ color: "#94a3b8", fontWeight: 400, fontSize: 13 }}>({schools.length})</span>
+          </p>
+          {schools.length === 0 ? (
+            <div style={{ textAlign: "center", color: "#94a3b8", padding: "40px 0" }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🏫</div>
+              <p>No schools registered yet.</p>
+            </div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: "#f8fafc" }}>
+                    {["School Name", "Admin Email", "Phone", "Teachers", "Status", "Trial Ends", "Registered", "Action"].map(h => (
+                      <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: "#475569", borderBottom: "2px solid #e2e8f0", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {schools.map((s, i) => {
+                    const statusColor = s.subscriptionStatus === "ACTIVE"
+                      ? ["#dcfce7","#16a34a"]
+                      : s.subscriptionStatus === "EXPIRED"
+                      ? ["#fee2e2","#dc2626"]
+                      : ["#fef3c7","#d97706"];
+                    return (
+                      <tr key={s.id} style={{ background: i % 2 === 0 ? "#fff" : "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "10px 12px", fontWeight: 700, color: "#0f172a" }}>{s.name}</td>
+                        <td style={{ padding: "10px 12px", color: "#475569" }}>{s.adminEmail}</td>
+                        <td style={{ padding: "10px 12px", color: "#475569" }}>{s.phone || "—"}</td>
+                        <td style={{ padding: "10px 12px", textAlign: "center", fontWeight: 700 }}>{s.teacherCount}</td>
+                        <td style={{ padding: "10px 12px" }}>
+                          <span style={{ background: statusColor[0], color: statusColor[1], borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>
+                            {s.subscriptionStatus}
+                          </span>
+                        </td>
+                        <td style={{ padding: "10px 12px", color: "#94a3b8" }}>
+                          {s.trialEndsAt || (s.subscriptionStatus === "ACTIVE" ? "—" : "Expired")}
+                        </td>
+                        <td style={{ padding: "10px 12px", color: "#94a3b8" }}>{s.createdAt}</td>
+                        <td style={{ padding: "10px 12px" }}>
+                          {s.subscriptionStatus !== "ACTIVE" ? (
+                            <button
+                              onClick={() => activateSchool(s.id, s.name)}
+                              disabled={activating === s.id}
+                              style={{ background: "#dcfce7", color: "#16a34a", border: "none", borderRadius: 8,
+                                padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                              {activating === s.id ? "…" : "✓ Activate"}
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: 12, color: "#16a34a", fontWeight: 600 }}>✓ Active</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Users table ── */}
-      <div className="card">
+      {tab === "users" && <div className="card" style={{ marginBottom: 0 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a" }}>
             All Users <span style={{ color: "#94a3b8", fontWeight: 400, fontSize: 13 }}>({filteredUsers.length})</span>
@@ -237,7 +331,7 @@ export default function AdminDashboard() {
             </tbody>
           </table>
         </div>
-      </div>
+      </div>}
     </DashboardLayout>
   );
 }

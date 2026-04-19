@@ -58,6 +58,37 @@ public class EmailService {
         }
     }
 
+    @Value("${admin.alert.email:avnishweb91@gmail.com}")
+    private String adminAlertEmail;
+
+    @Async
+    public void sendNewSchoolAlert(String schoolName, String adminEmail, String adminName, String phone) {
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper h = new MimeMessageHelper(msg, true, "UTF-8");
+            h.setFrom(from);
+            h.setTo(adminAlertEmail);
+            h.setSubject("🏫 New School Registered — " + schoolName);
+            h.setText("""
+                <div style="font-family:sans-serif;max-width:560px;margin:auto;padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">
+                  <h2 style="color:#1e3a8a;margin:0 0 16px">🏫 New School Signed Up</h2>
+                  <table style="font-size:14px;color:#374151;width:100%%">
+                    <tr><td style="padding:6px 0;color:#64748b;width:140px">School Name</td><td style="font-weight:700">%s</td></tr>
+                    <tr><td style="padding:6px 0;color:#64748b">Admin Name</td><td>%s</td></tr>
+                    <tr><td style="padding:6px 0;color:#64748b">Admin Email</td><td>%s</td></tr>
+                    <tr><td style="padding:6px 0;color:#64748b">Phone</td><td>%s</td></tr>
+                    <tr><td style="padding:6px 0;color:#64748b">Trial</td><td style="color:#d97706;font-weight:700">7 days · up to 5 teachers</td></tr>
+                  </table>
+                  <p style="margin:20px 0 0;font-size:13px;color:#64748b">Login to your admin panel to activate this school after payment.</p>
+                </div>
+                """.formatted(schoolName, adminName, adminEmail, phone != null ? phone : "—"), true);
+            mailSender.send(msg);
+            log.info("New school alert sent for {}", schoolName);
+        } catch (Exception e) {
+            log.warn("Failed to send school alert: {}", e.getMessage());
+        }
+    }
+
     @Async
     public void sendPasswordReset(String toEmail, String name, String resetLink) {
         if (toEmail == null || toEmail.isBlank()) return;

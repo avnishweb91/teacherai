@@ -54,6 +54,10 @@ export default function SchoolAdminDashboard() {
   );
 
   const { school, teachers, teacherCount, totalUsage, usageByFeature, weeklyActivity, activeThisWeek } = data;
+  const isTrial   = school.subscriptionStatus === "TRIAL";
+  const isExpired = school.subscriptionStatus === "EXPIRED";
+  const trialDaysLeft = school.trialDaysLeft ?? 0;
+  const trialTeacherLimit = school.trialTeacherLimit ?? 5;
   const weekDays = Object.entries(weeklyActivity || {});
   const weekMax  = Math.max(...weekDays.map(([, v]) => v), 1);
 
@@ -63,6 +67,53 @@ export default function SchoolAdminDashboard() {
         <h1 className="page-title">🏫 School Dashboard</h1>
         <p className="page-subtitle">{school.name} — manage your teachers and view usage analytics.</p>
       </div>
+
+      {/* ── Trial / Expired banner ── */}
+      {isExpired && (
+        <div style={{
+          maxWidth: 900, marginBottom: 20, padding: "16px 20px", borderRadius: 12,
+          background: "#fef2f2", border: "2px solid #fca5a5",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
+        }}>
+          <div>
+            <p style={{ fontWeight: 800, color: "#dc2626", fontSize: 15, margin: "0 0 4px" }}>
+              🔴 Your free trial has expired
+            </p>
+            <p style={{ fontSize: 13, color: "#7f1d1d", margin: 0 }}>
+              Teachers can no longer join using the invite code. Contact us to activate your school plan and continue with unlimited access.
+            </p>
+          </div>
+          <a href="mailto:avnishweb91@gmail.com?subject=SmartBoard School Plan Activation"
+            style={{ background: "#dc2626", color: "#fff", borderRadius: 10, padding: "10px 20px",
+              fontWeight: 700, fontSize: 13, textDecoration: "none", whiteSpace: "nowrap" }}>
+            Contact to Activate →
+          </a>
+        </div>
+      )}
+
+      {isTrial && (
+        <div style={{
+          maxWidth: 900, marginBottom: 20, padding: "14px 20px", borderRadius: 12,
+          background: trialDaysLeft <= 2 ? "#fef3c7" : "#eff6ff",
+          border: `2px solid ${trialDaysLeft <= 2 ? "#fcd34d" : "#93c5fd"}`,
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap",
+        }}>
+          <div>
+            <p style={{ fontWeight: 700, color: trialDaysLeft <= 2 ? "#92400e" : "#1e40af", fontSize: 14, margin: "0 0 3px" }}>
+              {trialDaysLeft <= 2 ? "⚠️" : "🕐"} Free Trial — {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} remaining
+            </p>
+            <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>
+              {teacherCount} / {trialTeacherLimit} teachers joined · Trial ends in {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""}.
+              Contact us to upgrade for unlimited teachers and continued access.
+            </p>
+          </div>
+          <a href="mailto:avnishweb91@gmail.com?subject=SmartBoard School Plan - Upgrade Request"
+            style={{ background: "#2563eb", color: "#fff", borderRadius: 10, padding: "10px 20px",
+              fontWeight: 700, fontSize: 13, textDecoration: "none", whiteSpace: "nowrap" }}>
+            Upgrade Plan →
+          </a>
+        </div>
+      )}
 
       {/* Stats row */}
       <div className="stat-grid" style={{ marginBottom: 24 }}>

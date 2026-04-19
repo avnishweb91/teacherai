@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import LoginEmail from "./LoginEmail";
+import SplashScreen from "./SplashScreen";
 import api from "../services/api";
 import "./auth.css";
 
@@ -149,6 +150,7 @@ function TourModal({ onClose }) {
 
 export default function AuthPage() {
   const [showTour, setShowTour] = useState(false);
+  const [showSplash, setShowSplash] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState("");
   const navigate = useNavigate();
@@ -160,6 +162,10 @@ export default function AuthPage() {
   }, []);
 
   const handleLoginSuccess = () => {
+    setShowSplash(true);
+  };
+
+  const handleSplashComplete = () => {
     navigate("/dashboard", { replace: true });
   };
 
@@ -169,7 +175,7 @@ export default function AuthPage() {
     try {
       const res = await api.post("/api/auth/google", { idToken: credentialResponse.credential });
       localStorage.setItem("token", res.data.token);
-      navigate("/dashboard", { replace: true });
+      setShowSplash(true);
     } catch {
       setGoogleError("Google sign-in failed. Please try again.");
     } finally {
@@ -179,6 +185,7 @@ export default function AuthPage() {
 
   return (
     <div className="auth-page">
+      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
       {showTour && <TourModal onClose={() => setShowTour(false)} />}
 
       {/* ── Left branding panel ── */}

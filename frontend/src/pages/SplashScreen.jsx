@@ -8,8 +8,8 @@ const TIPS = [
   "Almost ready!",
 ];
 
-const TOTAL_MS = 2500;
-const TIP_INTERVAL = 600;
+const TOTAL_MS = 5000;
+const TIP_INTERVAL = 1000;
 
 export default function SplashScreen({ onComplete }) {
   const [tipIndex, setTipIndex] = useState(0);

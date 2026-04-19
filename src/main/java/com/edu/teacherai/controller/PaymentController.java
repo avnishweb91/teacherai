@@ -34,15 +34,17 @@ public class PaymentController {
     // plan → amount in paise (INR * 100)
     private static final Map<String, Integer> PLAN_AMOUNTS = Map.of(
         "PRO_MONTHLY",    19900,   // ₹199
-        "PRO_YEARLY",    149900,   // ₹1499
-        "SCHOOL_MONTHLY", 99900    // ₹999
+        "PRO_YEARLY",    179900,   // ₹1,799
+        "SCHOOL_MONTHLY",199900,   // ₹1,999
+        "SCHOOL_PRO",    349900    // ₹3,499
     );
 
     // plan key → planType value to store in DB
     private static final Map<String, String> PLAN_TYPE = Map.of(
         "PRO_MONTHLY",   "PRO",
         "PRO_YEARLY",    "PRO",
-        "SCHOOL_MONTHLY","SCHOOL"
+        "SCHOOL_MONTHLY","SCHOOL",
+        "SCHOOL_PRO",    "SCHOOL"
     );
 
     public PaymentController(UserRepository userRepo, EmailService emailService) {

@@ -138,9 +138,21 @@ export default function UpgradePlan() {
       return;
     }
 
+    if (!window.Razorpay) {
+      setError("Payment gateway unavailable. Please disable any ad blocker and try again.");
+      setLoading(null);
+      return;
+    }
+
     try {
       // 1. Create order on backend
       const { data } = await api.post("/api/payment/create-order", { plan: planKey });
+
+      if (!data?.orderId || !data?.keyId) {
+        setError("Invalid response from payment server. Please try again.");
+        setLoading(null);
+        return;
+      }
 
       // 2. Open Razorpay checkout
       const options = {
@@ -148,8 +160,8 @@ export default function UpgradePlan() {
         amount: data.amount,
         currency: data.currency,
         order_id: data.orderId,
-        name: "TeacherAI",
-        description: planKey.replace("_", " ") + " Plan",
+        name: "SmartBoard AI",
+        description: planKey.replace(/_/g, " ") + " Plan",
         theme: { color: "#2563eb" },
         handler: async (response) => {
           // 3. Verify on backend & upgrade plan
@@ -161,8 +173,9 @@ export default function UpgradePlan() {
               plan: planKey,
             });
             navigate("/profile", { state: { upgraded: true } });
-          } catch {
-            setError("Payment received but plan activation failed. Contact support.");
+          } catch (verifyErr) {
+            console.error("Payment verify error:", verifyErr);
+            setError("Payment received but plan activation failed. Contact support@smartboard.co.in");
           }
         },
         modal: {
@@ -177,8 +190,13 @@ export default function UpgradePlan() {
       });
       rzp.open();
 
-    } catch {
-      setError("Could not initiate payment. Please try again.");
+    } catch (err) {
+      console.error("Payment initiation error:", err);
+      const msg = err?.response?.data?.message || err?.response?.data || err?.message || "";
+      setError(msg
+        ? `Payment error: ${msg}`
+        : "Could not initiate payment. Please try again or contact support@smartboard.co.in"
+      );
       setLoading(null);
     }
   };

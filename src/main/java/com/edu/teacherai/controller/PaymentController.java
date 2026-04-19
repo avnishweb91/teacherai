@@ -8,6 +8,8 @@ import com.edu.teacherai.entity.User;
 import com.edu.teacherai.repository.UserRepository;
 import com.edu.teacherai.service.EmailService;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/payment")
 public class PaymentController {
+
+    private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
 
     @Value("${razorpay.key.id}")
     private String keyId;
@@ -65,16 +69,22 @@ public class PaymentController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid plan: " + planKey);
         }
 
+        if (keyId == null || keyId.isBlank() || keySecret == null || keySecret.isBlank()) {
+            log.error("Razorpay keys not configured — RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is empty");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Payment gateway not configured");
+        }
+
         try {
             RazorpayClient client = new RazorpayClient(keyId, keySecret);
 
             JSONObject options = new JSONObject();
             options.put("amount", amount);
             options.put("currency", "INR");
-            options.put("receipt", "receipt_" + auth.getName() + "_" + System.currentTimeMillis());
+            options.put("receipt", "rcpt_" + System.currentTimeMillis());
             options.put("payment_capture", 1);
 
             Order order = client.orders.create(options);
+            log.info("Razorpay order created: {} for plan: {}", order.get("id"), planKey);
 
             return ResponseEntity.ok(Map.of(
                 "orderId",  order.get("id"),
@@ -84,7 +94,9 @@ public class PaymentController {
             ));
 
         } catch (RazorpayException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create payment order");
+            log.error("Razorpay order creation failed for plan {}: {}", planKey, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Payment gateway error: " + e.getMessage());
         }
     }
 

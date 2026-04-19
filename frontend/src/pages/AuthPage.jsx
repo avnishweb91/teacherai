@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import LoginEmail from "./LoginEmail";
 import api from "../services/api";
@@ -252,6 +252,26 @@ export default function AuthPage() {
               Register your school →
             </a>
           </div>
+        </div>
+
+        {/* ── Footer ── */}
+        <div style={{ marginTop: 28, textAlign: "center", borderTop: "1px solid #f1f5f9", paddingTop: 18, width: "100%", maxWidth: 420 }}>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginBottom: 12 }}>
+            <Link to="/privacy" style={{ fontSize: 12, color: "#64748b", textDecoration: "none", fontWeight: 500 }}>
+              Privacy Policy
+            </Link>
+            <span style={{ color: "#cbd5e1", fontSize: 14 }}>|</span>
+            <Link to="/terms" style={{ fontSize: 12, color: "#64748b", textDecoration: "none", fontWeight: 500 }}>
+              Terms &amp; Conditions
+            </Link>
+          </div>
+          <p style={{ fontSize: 11, color: "#94a3b8", margin: "0 0 4px" }}>
+            Need help?{" "}
+            <a href="tel:+918789225125" style={{ color: "#2563eb", textDecoration: "none", fontWeight: 600 }}>+91 8789225125</a>
+          </p>
+          <a href="mailto:support@smartboard.co.in" style={{ fontSize: 11, color: "#2563eb", textDecoration: "none", fontWeight: 500 }}>
+            support@smartboard.co.in
+          </a>
         </div>
       </div>
     </div>

@@ -31,6 +31,7 @@ import ExamSchedule from "./pages/ExamSchedule";
 import HomeworkTracker from "./pages/HomeworkTracker";
 import ParentPortal from "./pages/ParentPortal";
 import ResetPassword from "./pages/ResetPassword";
+import LandingPage from "./pages/LandingPage";
 
 function getRoleFromToken() {
   try {
@@ -218,7 +219,9 @@ function AppRoutes() {
         <Route
           path="/"
           element={
-            <Navigate to={isLoggedIn ? (role === "SCHOOL_ADMIN" ? "/school-admin" : "/dashboard") : "/login"} replace />
+            isLoggedIn
+              ? <Navigate to={role === "SCHOOL_ADMIN" ? "/school-admin" : "/dashboard"} replace />
+              : <LandingPage />
           }
         />
         <Route

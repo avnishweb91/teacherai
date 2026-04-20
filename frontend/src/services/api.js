@@ -16,7 +16,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
-    if (status === 401 || status === 403) {
+    if (status === 401) {
       localStorage.removeItem("token");
       window.location.href = "/login";
     }

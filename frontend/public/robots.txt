@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /lesson
+Disallow: /history
+Disallow: /assessment
+Disallow: /attendance
+Disallow: /planner
+Disallow: /report-card
+Disallow: /notice
+Disallow: /timetable
+Disallow: /syllabus
+Disallow: /exam
+Disallow: /homework
+Disallow: /parents
+Disallow: /doubt
+Disallow: /profile
+Disallow: /upgrade
+Disallow: /admin
+Disallow: /school-admin
+
+Sitemap: https://www.smartboard.co.in/sitemap.xml

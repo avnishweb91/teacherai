@@ -66,8 +66,8 @@ export default function ParentPortal() {
     setLoading(true);
     try {
       const [studentsResp, contactsResp] = await Promise.all([
-        api.get("/api/attendance/students"),
-        api.get("/api/parent-contacts"),
+        api.get("/api/attendance/students", { _skipAuthRedirect: true }),
+        api.get("/api/parent-contacts", { _skipAuthRedirect: true }),
       ]);
       setStudents(studentsResp.data);
 

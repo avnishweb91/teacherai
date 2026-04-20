@@ -24,7 +24,7 @@ export default function Profile() {
 
   const loadProfile = async () => {
     try {
-      const res = await api.get("/api/user/me");
+      const res = await api.get("/api/user/me", { _skipAuthRedirect: true });
       setUser(res.data);
     } catch {
       setError("Failed to load profile");

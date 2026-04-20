@@ -100,8 +100,8 @@ export default function ReportCard() {
   const [attRecordsYear, setAttRecordsYear] = useState({});
 
   useEffect(() => {
-    api.get("/api/attendance/students").then(r => setAttStudents(r.data)).catch(() => {});
-    api.get(`/api/attendance/records/year?year=${year}`).then(r => setAttRecordsYear(r.data)).catch(() => {});
+    api.get("/api/attendance/students", { _skipAuthRedirect: true }).then(r => setAttStudents(r.data)).catch(() => {});
+    api.get(`/api/attendance/records/year?year=${year}`, { _skipAuthRedirect: true }).then(r => setAttRecordsYear(r.data)).catch(() => {});
   }, [year]); // eslint-disable-line
 
   /* ── ui ── */

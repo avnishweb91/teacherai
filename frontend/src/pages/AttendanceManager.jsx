@@ -68,12 +68,12 @@ export default function AttendanceManager() {
   const initStudents = async () => {
     setLoading(true);
     try {
-      const resp = await api.get("/api/attendance/students");
+      const resp = await api.get("/api/attendance/students", { _skipAuthRedirect: true });
       if (resp.data.length === 0 && !migrationRan.current) {
         migrationRan.current = true;
         const migrated = await migrateStudentsFromLocal();
         if (migrated) {
-          const r2 = await api.get("/api/attendance/students");
+          const r2 = await api.get("/api/attendance/students", { _skipAuthRedirect: true });
           setStudents(r2.data);
         }
       } else {

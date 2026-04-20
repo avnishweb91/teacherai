@@ -16,7 +16,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
-    if (status === 401) {
+    if (status === 401 && !error.config?._skipAuthRedirect) {
       localStorage.removeItem("token");
       window.dispatchEvent(new Event("auth:logout"));
     }

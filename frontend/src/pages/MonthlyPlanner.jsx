@@ -106,7 +106,7 @@ export default function MonthlyPlanner() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get("/api/user/me").then(res => setUserPlan(res.data.planType)).catch(() => {});
+    api.get("/api/user/me", { _skipAuthRedirect: true }).then(res => setUserPlan(res.data.planType)).catch(() => {});
   }, []);
 
   const checkAndCountUsage = () => {

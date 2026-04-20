@@ -38,10 +38,10 @@ export default function SyllabusTracker() {
   const loadChapters = async (g, b) => {
     setLoading(true);
     try {
-      const resp = await api.get(`/api/syllabus?grade=${encodeURIComponent(g)}&board=${encodeURIComponent(b)}`);
+      const resp = await api.get(`/api/syllabus?grade=${encodeURIComponent(g)}&board=${encodeURIComponent(b)}`, { _skipAuthRedirect: true });
       if (resp.data.length === 0) {
         await migrateFromLocal(g, b);
-        const r2 = await api.get(`/api/syllabus?grade=${encodeURIComponent(g)}&board=${encodeURIComponent(b)}`);
+        const r2 = await api.get(`/api/syllabus?grade=${encodeURIComponent(g)}&board=${encodeURIComponent(b)}`, { _skipAuthRedirect: true });
         applyChapters(r2.data, g, b);
       } else {
         applyChapters(resp.data, g, b);

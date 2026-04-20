@@ -206,7 +206,13 @@ export default function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
 
-        {/* FALLBACK */}
+        {/* ROOT + FALLBACK */}
+        <Route
+          path="/"
+          element={
+            <Navigate to={isLoggedIn ? (role === "SCHOOL_ADMIN" ? "/school-admin" : "/dashboard") : "/login"} replace />
+          }
+        />
         <Route
           path="*"
           element={

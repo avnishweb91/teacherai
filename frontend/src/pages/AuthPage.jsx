@@ -6,6 +6,14 @@ import SplashScreen from "./SplashScreen";
 import api from "../services/api";
 import "./auth.css";
 
+function getRoleFromToken() {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    return JSON.parse(atob(token.split(".")[1])).role;
+  } catch { return null; }
+}
+
 const TOUR_SLIDES = [
   {
     icon: "🎓",
@@ -166,7 +174,8 @@ export default function AuthPage() {
   };
 
   const handleSplashComplete = () => {
-    navigate("/dashboard", { replace: true });
+    const role = getRoleFromToken();
+    navigate(role === "SCHOOL_ADMIN" ? "/school-admin" : "/dashboard", { replace: true });
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {

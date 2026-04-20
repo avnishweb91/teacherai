@@ -2,8 +2,10 @@ import {
   BrowserRouter,
   Routes,
   Route,
-  Navigate
+  Navigate,
+  useNavigate
 } from "react-router-dom";
+import { useEffect } from "react";
 
 import Dashboard from "./pages/Dashboard";
 import GenerateLesson from "./pages/GenerateLesson";
@@ -38,13 +40,19 @@ function getRoleFromToken() {
   } catch { return null; }
 }
 
-export default function App() {
+function AppRoutes() {
+  const navigate = useNavigate();
   const isLoggedIn = !!localStorage.getItem("token");
   const role = getRoleFromToken();
 
+  useEffect(() => {
+    const handle = () => navigate("/login", { replace: true });
+    window.addEventListener("auth:logout", handle);
+    return () => window.removeEventListener("auth:logout", handle);
+  }, [navigate]);
+
   return (
-    <BrowserRouter>
-      <Routes>
+    <Routes>
 
         {/* LOGIN / REGISTER */}
         <Route
@@ -221,6 +229,13 @@ export default function App() {
         />
 
       </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
     </BrowserRouter>
   );
 }

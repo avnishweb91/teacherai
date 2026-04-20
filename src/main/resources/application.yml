@@ -1,7 +1,6 @@
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:teacherdb;DB_CLOSE_DELAY=-1}
-    driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.h2.Driver}
     username: ${SPRING_DATASOURCE_USERNAME:sa}
     password: ${SPRING_DATASOURCE_PASSWORD:sa}
 
@@ -14,7 +13,6 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: false
-    database-platform: ${JPA_PLATFORM:org.hibernate.dialect.H2Dialect}
 
 openai:
   api:

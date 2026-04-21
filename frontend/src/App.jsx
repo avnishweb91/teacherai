@@ -32,6 +32,7 @@ import HomeworkTracker from "./pages/HomeworkTracker";
 import ParentPortal from "./pages/ParentPortal";
 import ResetPassword from "./pages/ResetPassword";
 import LandingPage from "./pages/LandingPage";
+import GoogleCallback from "./pages/GoogleCallback";
 
 function getRoleFromToken() {
   try {
@@ -207,6 +208,9 @@ function AppRoutes() {
 
         {/* DOUBT SOLVER */}
         <Route path="/doubt" element={<ProtectedRoute><DoubtSolver /></ProtectedRoute>} />
+
+        {/* GOOGLE OAUTH CALLBACK */}
+        <Route path="/auth/google/callback" element={<GoogleCallback />} />
 
         {/* RESET PASSWORD */}
         <Route path="/reset-password" element={<ResetPassword />} />

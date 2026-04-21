@@ -39,6 +39,9 @@ public class AuthService {
         @Value("${google.client.id:}")
         private String googleClientId;
 
+        @Value("${google.client.secret:}")
+        private String googleClientSecret;
+
         @Value("${app.frontend.url:https://smartboard.co.in}")
         private String frontendUrl;
 
@@ -263,8 +266,44 @@ public class AuthService {
     }
 
     /* ======================
-           GOOGLE LOGIN
+           GOOGLE LOGIN (auth-code redirect flow)
            ====================== */
+    @Transactional
+    public AuthResponse googleLoginWithCode(String code, String redirectUri) {
+        // Exchange authorization code for tokens
+        String idToken;
+        try {
+            String body = "code=" + java.net.URLEncoder.encode(code, java.nio.charset.StandardCharsets.UTF_8)
+                    + "&client_id=" + java.net.URLEncoder.encode(googleClientId, java.nio.charset.StandardCharsets.UTF_8)
+                    + "&client_secret=" + java.net.URLEncoder.encode(googleClientSecret, java.nio.charset.StandardCharsets.UTF_8)
+                    + "&redirect_uri=" + java.net.URLEncoder.encode(redirectUri, java.nio.charset.StandardCharsets.UTF_8)
+                    + "&grant_type=authorization_code";
+
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://oauth2.googleapis.com/token"))
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                throw new RuntimeException("Token exchange failed: " + response.body());
+            }
+            JsonNode tokenJson = new ObjectMapper().readTree(response.body());
+            idToken = tokenJson.path("id_token").asText("");
+            if (idToken.isBlank()) {
+                throw new RuntimeException("No id_token in token response");
+            }
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Google code exchange failed: " + e.getMessage());
+        }
+
+        return googleLogin(idToken);
+    }
+
     @Transactional
     public AuthResponse googleLogin(String idToken) {
 

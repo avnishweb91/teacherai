@@ -71,7 +71,7 @@ public class AuthController {
     }
 
     /* =========================
-       GOOGLE OAUTH LOGIN
+       GOOGLE OAUTH LOGIN (id_token — popup flow, kept for backwards compat)
        ========================= */
     @PostMapping("/google")
     public ResponseEntity<AuthResponse> googleLogin(@RequestBody Map<String, String> req) {
@@ -81,6 +81,24 @@ public class AuthController {
         }
         AuthResponse response = authService.googleLogin(idToken);
         return ResponseEntity.ok(response);
+    }
+
+    /* =========================
+       GOOGLE OAUTH CALLBACK (auth-code — redirect flow, mobile-safe)
+       ========================= */
+    @PostMapping("/google/callback")
+    public ResponseEntity<?> googleCallback(@RequestBody Map<String, String> req) {
+        String code = req.get("code");
+        String redirectUri = req.get("redirectUri");
+        if (code == null || code.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Missing authorization code"));
+        }
+        try {
+            AuthResponse response = authService.googleLoginWithCode(code, redirectUri);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @PostMapping("/forgot-password")

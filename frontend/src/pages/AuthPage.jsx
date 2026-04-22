@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, useGoogleLogin } from "@react-oauth/google";
 import LoginEmail from "./LoginEmail";
 import SplashScreen from "./SplashScreen";
 import api from "../services/api";
 import "./auth.css";
+
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 function getRoleFromToken() {
   try {
@@ -21,15 +23,14 @@ export default function AuthPage() {
   const [googleError, setGoogleError] = useState("");
   const navigate = useNavigate();
 
-  const handleLoginSuccess = () => {
-    setShowSplash(true);
-  };
+  const handleLoginSuccess = () => setShowSplash(true);
 
   const handleSplashComplete = () => {
     const role = getRoleFromToken();
     navigate(role === "SCHOOL_ADMIN" ? "/school-admin" : "/dashboard", { replace: true });
   };
 
+  // Desktop — id_token via GoogleLogin component (existing, untouched)
   const handleGoogleSuccess = async (credentialResponse) => {
     setGoogleError("");
     setGoogleLoading(true);
@@ -43,6 +44,24 @@ export default function AuthPage() {
       setGoogleLoading(false);
     }
   };
+
+  // Mobile — access_token via useGoogleLogin hook (no iframe, works on mobile data)
+  const mobileGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setGoogleError("");
+      setGoogleLoading(true);
+      try {
+        const res = await api.post("/api/auth/google-mobile", { accessToken: tokenResponse.access_token });
+        localStorage.setItem("token", res.data.token);
+        setShowSplash(true);
+      } catch {
+        setGoogleError("Google sign-in failed. Please try again.");
+      } finally {
+        setGoogleLoading(false);
+      }
+    },
+    onError: () => setGoogleError("Google sign-in was cancelled or failed."),
+  });
 
   return (
     <div className="auth-page">
@@ -92,6 +111,18 @@ export default function AuthPage() {
               <div className="google-signin-loading">
                 <span className="auth-spinner" /> Signing in with Google…
               </div>
+            ) : isMobile ? (
+              <button
+                onClick={() => mobileGoogleLogin()}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+                  gap: 10, padding: "11px 16px", border: "1.5px solid #d1d5db", borderRadius: 8,
+                  background: "#fff", cursor: "pointer", fontSize: 15, fontWeight: 500, color: "#374151",
+                }}
+              >
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" width={20} height={20} />
+                Continue with Google
+              </button>
             ) : (
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}

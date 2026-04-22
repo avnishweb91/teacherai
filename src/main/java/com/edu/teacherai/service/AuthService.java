@@ -328,5 +328,56 @@ public class AuthService {
         return new AuthResponse(jwt, user, "LOGIN");
     }
 
+    /* ======================
+       GOOGLE LOGIN (access_token — mobile flow)
+       ====================== */
+    @Transactional
+    public AuthResponse googleLoginWithAccessToken(String accessToken) {
+        JsonNode userInfo;
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://www.googleapis.com/oauth2/v3/userinfo"))
+                    .header("Authorization", "Bearer " + accessToken)
+                    .GET()
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new RuntimeException("Invalid Google access token");
+            }
+            userInfo = new ObjectMapper().readTree(response.body());
+        } catch (Exception e) {
+            throw new RuntimeException("Google token verification failed: " + e.getMessage());
+        }
+
+        String email = userInfo.path("email").asText();
+        String name  = userInfo.path("name").asText("Teacher");
+        String sub   = userInfo.path("sub").asText();
+
+        if (email == null || email.isBlank()) {
+            throw new RuntimeException("Email not available from Google");
+        }
+
+        User user = userRepo.findByEmail(email).orElse(null);
+        boolean isNew = false;
+        if (user == null) {
+            user = new User();
+            user.setName(name);
+            user.setEmail(email);
+            user.setMobile("google_" + sub);
+            user.setRole("TEACHER");
+            user.setPlanType("FREE");
+            userRepo.save(user);
+            isNew = true;
+        }
+
+        if (isNew) {
+            emailService.sendWelcome(user.getEmail(), user.getName());
+            emailService.sendNewUserAlert(user.getName(), user.getEmail(), user.getMobile(), "Google (Mobile)");
+        }
+
+        String jwt = jwtUtil.generateToken(user.getMobile(), user.getRole());
+        return new AuthResponse(jwt, user, "LOGIN");
+    }
 
 }

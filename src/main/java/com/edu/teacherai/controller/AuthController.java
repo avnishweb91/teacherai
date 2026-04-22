@@ -83,6 +83,17 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    /* Mobile flow — access_token (from useGoogleLogin hook) */
+    @PostMapping("/google-mobile")
+    public ResponseEntity<AuthResponse> googleMobileLogin(@RequestBody Map<String, String> req) {
+        String accessToken = req.get("accessToken");
+        if (accessToken == null || accessToken.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        AuthResponse response = authService.googleLoginWithAccessToken(accessToken);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody Map<String, String> req) {
         String email = req.get("email");

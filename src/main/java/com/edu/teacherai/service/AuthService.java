@@ -191,6 +191,7 @@ public class AuthService {
         userRepo.save(user);
 
         emailService.sendWelcome(user.getEmail(), user.getName());
+        emailService.sendNewUserAlert(user.getName(), user.getEmail(), user.getMobile(), "Email / OTP");
 
         String jwt = jwtUtil.generateToken(user.getMobile(), user.getRole());
 
@@ -320,6 +321,7 @@ public class AuthService {
 
         if (isNew) {
             emailService.sendWelcome(user.getEmail(), user.getName());
+            emailService.sendNewUserAlert(user.getName(), user.getEmail(), user.getMobile(), "Google");
         }
 
         String jwt = jwtUtil.generateToken(user.getMobile(), user.getRole());

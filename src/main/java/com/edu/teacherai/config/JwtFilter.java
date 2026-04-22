@@ -46,7 +46,6 @@ public class JwtFilter extends OncePerRequestFilter {
 
                 // subject is MOBILE (always present for all users)
                 String mobile = claims.getSubject();
-                String role = claims.get("role", String.class);
 
                 if (mobile != null &&
                         SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -54,11 +53,12 @@ public class JwtFilter extends OncePerRequestFilter {
                     User user = userRepository.findByMobile(mobile).orElse(null);
 
                     if (user != null) {
+                        // Read role from DB so promotions (ADMIN, etc.) take effect immediately
+                        String role = user.getRole();
 
                         UsernamePasswordAuthenticationToken authentication =
                                 new UsernamePasswordAuthenticationToken(
-                                        mobile, // principal = mobile
-
+                                        mobile,
                                         null,
                                         List.of(new SimpleGrantedAuthority("ROLE_" + role))
                                 );

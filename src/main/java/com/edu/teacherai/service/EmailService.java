@@ -23,7 +23,7 @@ public class EmailService {
     @Value("${app.mail.from:onboarding@smartboard.co.in}")
     private String from;
 
-    @Value("${admin.alert.email:avnishweb91@gmail.com}")
+    @Value("${admin.alert.email:support@smartboard.co.in}")
     private String adminAlertEmail;
 
     private void send(String to, String subject, String html) {
@@ -68,6 +68,33 @@ public class EmailService {
     public void sendWelcome(String toEmail, String name) {
         if (toEmail == null || toEmail.isBlank()) return;
         send(toEmail, "Welcome to SmartBoard AI!", buildWelcomeHtml(name));
+    }
+
+    @Async
+    public void sendNewUserAlert(String name, String email, String mobile, String signupMethod) {
+        String displayEmail  = (email  != null && !email.isBlank())  ? email  : "—";
+        String displayMobile = (mobile != null && !mobile.isBlank() && !mobile.startsWith("google_") && !mobile.startsWith("email_"))
+                ? mobile : "—";
+        String html = """
+            <div style="font-family:sans-serif;max-width:560px;margin:auto;padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">
+              <h2 style="color:#1e3a8a;margin:0 0 4px">&#127881; New Teacher Signed Up</h2>
+              <p style="margin:0 0 20px;color:#64748b;font-size:13px">SmartBoard AI · New Registration</p>
+              <table style="font-size:14px;color:#374151;width:100%%">
+                <tr><td style="padding:7px 0;color:#64748b;width:140px">Name</td><td style="font-weight:700">%s</td></tr>
+                <tr><td style="padding:7px 0;color:#64748b">Email</td><td>%s</td></tr>
+                <tr><td style="padding:7px 0;color:#64748b">Mobile</td><td>%s</td></tr>
+                <tr><td style="padding:7px 0;color:#64748b">Signed up via</td><td style="color:#2563eb;font-weight:600">%s</td></tr>
+                <tr><td style="padding:7px 0;color:#64748b">Plan</td><td style="color:#d97706;font-weight:700">FREE</td></tr>
+              </table>
+              <p style="margin:20px 0 0;font-size:12px;color:#94a3b8">View all users in your <a href="https://smartboard.co.in/admin" style="color:#2563eb">Admin Panel</a></p>
+            </div>
+            """.formatted(
+                name != null ? name : "—",
+                displayEmail,
+                displayMobile,
+                signupMethod
+        );
+        send(adminAlertEmail, "New Signup — " + (name != null ? name : "Teacher"), html);
     }
 
     @Async

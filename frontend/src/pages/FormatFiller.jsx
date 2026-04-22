@@ -3,7 +3,7 @@ import DashboardLayout from "../layout/DashboardLayout";
 import api from "../services/api";
 import jsPDF from "jspdf";
 import { saveAs } from "file-saver";
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } from "docx";
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, ShadingType } from "docx";
 
 /* ── helpers ── */
 async function extractDocxText(file) {
@@ -142,18 +142,159 @@ function hexToRgb(hex) {
   return [r, g, b];
 }
 
+function hexNoHash(hex) {
+  return hex ? hex.replace("#", "") : "374151";
+}
+
+const PALETTES = [
+  { header: "#1a237e", headerText: "#ffffff", alt: "#e8eaf6", border: "#3949ab" }, // Navy
+  { header: "#0d47a1", headerText: "#ffffff", alt: "#e3f2fd", border: "#1565c0" }, // Royal Blue
+  { header: "#004d40", headerText: "#ffffff", alt: "#e0f2f1", border: "#00796b" }, // Teal
+  { header: "#1b5e20", headerText: "#ffffff", alt: "#e8f5e9", border: "#388e3c" }, // Forest Green
+  { header: "#880e4f", headerText: "#ffffff", alt: "#fce4ec", border: "#c2185b" }, // Maroon
+  { header: "#4a148c", headerText: "#ffffff", alt: "#ede7f6", border: "#7b1fa2" }, // Purple
+  { header: "#263238", headerText: "#ffffff", alt: "#eceff1", border: "#455a64" }, // Charcoal
+  { header: "#bf360c", headerText: "#ffffff", alt: "#fbe9e7", border: "#e64a19" }, // Deep Orange
+];
+
+function getHue(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 0;
+  const r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  if (max === min) return 0;
+  const d = max - min;
+  let h;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return h * 360;
+}
+
+function getLuminance(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 1;
+  return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+}
+
+function pickPalette(detectedHeaderColor) {
+  // If color is too light or missing, use Navy as default
+  if (!detectedHeaderColor || getLuminance(detectedHeaderColor) > 0.55) {
+    return PALETTES[0];
+  }
+  // Otherwise find closest palette by hue match
+  const hue = getHue(detectedHeaderColor);
+  let best = PALETTES[0], bestDiff = 360;
+  for (const p of PALETTES) {
+    const diff = Math.abs(getHue(p.header) - hue);
+    const wrapped = Math.min(diff, 360 - diff);
+    if (wrapped < bestDiff) { bestDiff = wrapped; best = p; }
+  }
+  return best;
+}
+
+/* ── Word doc for image uploads (styled table) ── */
+async function generateStyledWordFromImage(fields, values, tableRows, tableColumns, documentType, design) {
+  const palette = pickPalette(design?.headerBgColor);
+  const titleStr = design?.titleText || documentType;
+  const hdrHex = hexNoHash(palette.header);
+  const hdrTxtHex = hexNoHash(palette.headerText);
+  const altHex = hexNoHash(palette.alt);
+
+  const titlePara = new Paragraph({
+    children: [new TextRun({ text: titleStr.toUpperCase(), bold: true, size: 28, color: hdrHex })],
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 300 },
+  });
+
+  const metaParas = fields.filter((f) => f.type !== "table").map((f) =>
+    new Paragraph({
+      children: [
+        new TextRun({ text: `${f.label}: `, bold: true, color: hdrHex }),
+        new TextRun({ text: values[f.key] || "—" }),
+      ],
+      spacing: { after: 160 },
+    })
+  );
+
+  const children = [titlePara, ...metaParas];
+
+  if (tableColumns.length > 0 && tableRows.length > 0) {
+    if (metaParas.length > 0) children.push(new Paragraph({ text: "", spacing: { after: 200 } }));
+
+    const colW = Math.floor(9000 / tableColumns.length);
+
+    const headerRow = new TableRow({
+      children: tableColumns.map((col) =>
+        new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: col, bold: true, color: hdrTxtHex, size: 18 })], alignment: AlignmentType.CENTER })],
+          shading: { fill: hdrHex, type: ShadingType.CLEAR, color: "auto" },
+          width: { size: colW, type: WidthType.DXA },
+        })
+      ),
+    });
+
+    const dataRows = tableRows.map((row, ri) =>
+      new TableRow({
+        children: tableColumns.map((_, ci) =>
+          new TableCell({
+            children: [new Paragraph({ children: [new TextRun({ text: row[ci] || "" })], alignment: AlignmentType.CENTER })],
+            shading: ri % 2 === 1 ? { fill: altHex, type: ShadingType.CLEAR, color: "auto" } : undefined,
+            width: { size: colW, type: WidthType.DXA },
+          })
+        ),
+      })
+    );
+
+    children.push(new Table({ rows: [headerRow, ...dataRows], width: { size: 9000, type: WidthType.DXA } }));
+  }
+
+  const doc = new Document({ sections: [{ children }] });
+  const blob = await Packer.toBlob(doc);
+  saveAs(blob, `${titleStr.replace(/\s+/g, "_")}_filled.docx`);
+}
+
+/* ── Excel for image uploads ── */
+async function generateExcelFromImage(fields, values, tableRows, tableColumns, documentType, design) {
+  const XLSX = await import("xlsx");
+  const titleStr = design?.titleText || documentType;
+  const wb = XLSX.utils.book_new();
+  const wsData = [];
+
+  wsData.push([titleStr]);
+  wsData.push([]);
+
+  fields.filter((f) => f.type !== "table").forEach((f) => {
+    wsData.push([f.label, values[f.key] || ""]);
+  });
+
+  if (tableColumns.length > 0 && tableRows.length > 0) {
+    wsData.push([]);
+    wsData.push(tableColumns);
+    tableRows.forEach((row) => wsData.push([...row]));
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const maxColW = Math.max(...tableColumns.map((c) => c.length), 20);
+  ws["!cols"] = tableColumns.map(() => ({ wch: maxColW }));
+  XLSX.utils.book_append_sheet(wb, ws, "Timetable");
+
+  const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  saveAs(new Blob([buf], { type: "application/octet-stream" }), `${titleStr.replace(/\s+/g, "_")}_filled.xlsx`);
+}
+
 function generateImagePdf(fields, values, tableRows, tableColumns, documentType, imageDataUrl, design) {
   const isLandscape = tableColumns && tableColumns.length > 5;
   const doc = new jsPDF({ orientation: isLandscape ? "landscape" : "portrait", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
 
-  // Design colors — fall back to sensible defaults
-  const hdrBg    = hexToRgb(design?.headerBgColor)   || [55, 65, 81];
-  const hdrText  = hexToRgb(design?.headerTextColor) || [255, 255, 255];
-  const altRow   = hexToRgb(design?.altRowBgColor)   || null;
-  const border   = hexToRgb(design?.borderColor)     || [209, 213, 219];
-  const pageBg   = hexToRgb(design?.pageBgColor)     || [255, 255, 255];
+  const palette  = pickPalette(design?.headerBgColor);
+  const hdrBg    = hexToRgb(palette.header);
+  const hdrText  = hexToRgb(palette.headerText);
+  const altRow   = hexToRgb(palette.alt);
+  const border   = hexToRgb(palette.border);
+  const pageBg   = [255, 255, 255];
   const titleStr = design?.titleText || documentType;
 
   // Page background
@@ -285,7 +426,6 @@ export default function FormatFiller() {
   const [values, setValues] = useState({});
   const [tableRows, setTableRows] = useState([[]]);
 
-  const [generating, setGenerating] = useState(false);
   const fileInputRef = useRef(null);
 
   /* ── step 1: upload & parse ── */
@@ -381,15 +521,24 @@ export default function FormatFiller() {
   }
 
   /* ── step 3: generate ── */
-  async function handleGenerate() {
-    setGenerating(true);
+  const [generating, setGenerating] = useState(false);
+
+  async function handleGenerate(format) {
+    setGenerating(format);
     try {
       if (fileType === "word") {
         await generateWordDoc(fields, values, tableRows, tableColumns, documentType);
       } else if (fileType === "excel") {
         await generateExcelDoc(fields, values, tableRows, tableColumns, documentType);
       } else {
-        generateImagePdf(fields, values, tableRows, tableColumns, documentType, imagePreview, design);
+        // image upload — user picks format
+        if (format === "pdf") {
+          generateImagePdf(fields, values, tableRows, tableColumns, documentType, imagePreview, design);
+        } else if (format === "word") {
+          await generateStyledWordFromImage(fields, values, tableRows, tableColumns, documentType, design);
+        } else if (format === "excel") {
+          await generateExcelFromImage(fields, values, tableRows, tableColumns, documentType, design);
+        }
       }
     } catch (err) {
       console.error("Generation failed", err);
@@ -414,7 +563,7 @@ export default function FormatFiller() {
     setTableRows([[]]);
   }
 
-  const outputLabel = fileType === "word" ? ".docx" : fileType === "excel" ? ".xlsx" : ".pdf";
+  const outputLabel = fileType === "excel" ? ".xlsx" : ".docx";
 
   return (
     <DashboardLayout>
@@ -625,10 +774,24 @@ export default function FormatFiller() {
               </div>
             )}
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button onClick={handleGenerate} disabled={generating} style={primaryBtn}>
-                {generating ? "Generating…" : `Download ${outputLabel}`}
-              </button>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              {fileType === "image" ? (
+                <>
+                  <button onClick={() => handleGenerate("pdf")} disabled={!!generating} style={primaryBtn}>
+                    {generating === "pdf" ? "Generating…" : "Download PDF"}
+                  </button>
+                  <button onClick={() => handleGenerate("word")} disabled={!!generating} style={{ ...primaryBtn, background: "#2563eb" }}>
+                    {generating === "word" ? "Generating…" : "Download Word (.docx)"}
+                  </button>
+                  <button onClick={() => handleGenerate("excel")} disabled={!!generating} style={{ ...primaryBtn, background: "#16a34a" }}>
+                    {generating === "excel" ? "Generating…" : "Download Excel (.xlsx)"}
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => handleGenerate(fileType)} disabled={!!generating} style={primaryBtn}>
+                  {generating ? "Generating…" : `Download ${outputLabel}`}
+                </button>
+              )}
               <button onClick={resetAll} style={ghostBtn}>
                 Fill Another Format
               </button>

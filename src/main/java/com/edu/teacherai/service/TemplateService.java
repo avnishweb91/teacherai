@@ -78,33 +78,36 @@ public class TemplateService {
         if ("image".equals(req.fileType)) {
             return """
                 Analyze this image of a document template/form used in an Indian school.
-                Identify every blank field, labeled space, or data entry point.
-                Also carefully analyze the visual design: colors, fonts, table structure.
+                This could be a timetable, attendance sheet, report card, circular, mark sheet, or any other school document.
 
-                Return ONLY this JSON structure (no markdown, no explanation):
+                IMPORTANT: Even if the document is mostly a table (like a timetable or routine chart),
+                you MUST detect its structure. Table cells that are empty or contain dashes are fillable.
+
+                Return ONLY this JSON (no markdown, no explanation):
                 {
-                  "documentType": "brief description of what this document is",
+                  "documentType": "e.g. Class Timetable / Attendance Sheet / Report Card",
                   "fields": [
                     {"key": "snake_case_key", "label": "Human Readable Label", "type": "text|date|number|textarea"}
                   ],
                   "hasTable": true or false,
-                  "tableColumns": ["Column1", "Column2"],
+                  "tableColumns": ["Col1", "Col2", ...],
+                  "tableRowHeaders": ["Row1", "Row2", ...],
                   "design": {
                     "titleText": "exact main title text visible in the document",
                     "headerBgColor": "hex color of table header row background e.g. #1a237e",
                     "headerTextColor": "hex color of table header text e.g. #ffffff",
                     "altRowBgColor": "hex color for alternating row background, empty string if none",
                     "borderColor": "hex color of table borders e.g. #3949ab",
-                    "pageBgColor": "hex color of page or document background e.g. #ffffff"
+                    "pageBgColor": "hex color of page/background e.g. #ffffff"
                   }
                 }
                 Rules:
-                - key must be unique snake_case
-                - type "date" for any date field, "number" for marks/roll number, "textarea" for multi-line content, "text" for everything else
-                - tableColumns only if hasTable is true, otherwise empty array []
-                - For design colors: be precise, use the actual colors you see in the image
-                - If a color is white use #ffffff, black use #000000
-                - Include ALL visible blank fields and ALL table columns
+                - fields = header-level info like School Name, Class, Section, Date, Teacher Name etc. Can be empty array [] if none.
+                - tableColumns = ALL column headers in the table (e.g. for timetable: ["Day","Period 1","Period 2",...])
+                - tableRowHeaders = the fixed row labels in the leftmost column (e.g. ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"] for a timetable). Empty array [] if rows have no fixed labels.
+                - hasTable must be true if there is ANY grid, table, or schedule structure in the document
+                - For design colors: pick the actual colors you see. If unsure use #374151 for header, #ffffff for text.
+                - Include ALL columns and ALL row headers you can see
                 """;
         } else {
             return """
@@ -181,6 +184,7 @@ public class TemplateService {
         resp.documentType = (String) map.getOrDefault("documentType", "Document");
         resp.hasTable = Boolean.TRUE.equals(map.get("hasTable"));
         resp.tableColumns = (List<String>) map.getOrDefault("tableColumns", List.of());
+        resp.tableRowHeaders = (List<String>) map.getOrDefault("tableRowHeaders", List.of());
 
         List<Map<String, String>> rawFields = (List<Map<String, String>>) map.getOrDefault("fields", List.of());
         resp.fields = rawFields.stream().map(f -> {

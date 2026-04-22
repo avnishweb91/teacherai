@@ -7,6 +7,7 @@ public class TemplateParseResponse {
     public List<TemplateField> fields;
     public boolean hasTable;
     public List<String> tableColumns;
+    public List<String> tableRowHeaders; // e.g. ["Monday","Tuesday",...] for timetables
     public DesignInfo design;
 
     public static class TemplateField {

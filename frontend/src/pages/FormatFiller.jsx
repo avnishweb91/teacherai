@@ -279,6 +279,7 @@ export default function FormatFiller() {
   const [fields, setFields] = useState([]);
   const [hasTable, setHasTable] = useState(false);
   const [tableColumns, setTableColumns] = useState([]);
+  const [tableRowHeaders, setTableRowHeaders] = useState([]);
   const [design, setDesign] = useState(null);
 
   const [values, setValues] = useState({});
@@ -325,13 +326,29 @@ export default function FormatFiller() {
 
       const { data } = await api.post("/api/template/parse", payload);
 
+      const cols = data.tableColumns || [];
+      const rowHeaders = data.tableRowHeaders || [];
+
       setDocumentType(data.documentType || "Document");
       setFields(data.fields || []);
       setHasTable(data.hasTable || false);
-      setTableColumns(data.tableColumns || []);
+      setTableColumns(cols);
+      setTableRowHeaders(rowHeaders);
       setDesign(data.design || null);
       setValues({});
-      setTableRows([new Array(data.tableColumns?.length || 0).fill("")]);
+
+      // Pre-fill rows: if row headers exist, seed a row per header with first cell set
+      if (rowHeaders.length > 0 && cols.length > 0) {
+        const seeded = rowHeaders.map((header) => {
+          const row = new Array(cols.length).fill("");
+          row[0] = header;
+          return row;
+        });
+        setTableRows(seeded);
+      } else {
+        setTableRows([new Array(cols.length || 1).fill("")]);
+      }
+
       setStep(2);
     } catch (err) {
       setParseError("Could not analyse the file. Please try again.");
@@ -391,6 +408,7 @@ export default function FormatFiller() {
     setFields([]);
     setHasTable(false);
     setTableColumns([]);
+    setTableRowHeaders([]);
     setDesign(null);
     setValues({});
     setTableRows([[]]);
@@ -480,7 +498,10 @@ export default function FormatFiller() {
               <div>
                 <p style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>{documentType}</p>
                 <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}>
-                  {fields.length} field{fields.length !== 1 ? "s" : ""} detected from your format
+                  {fields.length > 0 && `${fields.length} field${fields.length !== 1 ? "s" : ""}`}
+                  {fields.length > 0 && hasTable && " · "}
+                  {hasTable && tableColumns.length > 0 && `${tableColumns.length}-column table${tableRowHeaders.length > 0 ? ` · ${tableRowHeaders.length} rows` : ""}`}
+                  {fields.length === 0 && !hasTable && "Fill in your data below"}
                 </p>
               </div>
               <button onClick={() => setStep(1)} style={ghostBtn}>← Back</button>
@@ -530,10 +551,11 @@ export default function FormatFiller() {
                       {tableRows.map((row, ri) => (
                         <tr key={ri}>
                           {tableColumns.map((_, ci) => (
-                            <td key={ci} style={tdStyle}>
+                            <td key={ci} style={{ ...tdStyle, background: ci === 0 && tableRowHeaders.length > 0 ? "#f3f4f6" : "transparent" }}>
                               <input
-                                style={{ width: "100%", border: "none", outline: "none", fontSize: 13, background: "transparent", padding: "2px 4px" }}
+                                style={{ width: "100%", border: "none", outline: "none", fontSize: 13, background: "transparent", padding: "2px 4px", fontWeight: ci === 0 && tableRowHeaders.length > 0 ? 600 : 400 }}
                                 value={row[ci] || ""}
+                                readOnly={ci === 0 && tableRowHeaders.length > 0}
                                 onChange={(e) => updateTableCell(ri, ci, e.target.value)}
                               />
                             </td>

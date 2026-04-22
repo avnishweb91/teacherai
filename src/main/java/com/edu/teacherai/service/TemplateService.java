@@ -77,22 +77,34 @@ public class TemplateService {
     private String buildUserPrompt(TemplateParseRequest req) {
         if ("image".equals(req.fileType)) {
             return """
-                Analyze this image of a document template/form.
+                Analyze this image of a document template/form used in an Indian school.
                 Identify every blank field, labeled space, or data entry point.
-                Return ONLY this JSON structure:
+                Also carefully analyze the visual design: colors, fonts, table structure.
+
+                Return ONLY this JSON structure (no markdown, no explanation):
                 {
                   "documentType": "brief description of what this document is",
                   "fields": [
                     {"key": "snake_case_key", "label": "Human Readable Label", "type": "text|date|number|textarea"}
                   ],
                   "hasTable": true or false,
-                  "tableColumns": ["Column1", "Column2"]
+                  "tableColumns": ["Column1", "Column2"],
+                  "design": {
+                    "titleText": "exact main title text visible in the document",
+                    "headerBgColor": "hex color of table header row background e.g. #1a237e",
+                    "headerTextColor": "hex color of table header text e.g. #ffffff",
+                    "altRowBgColor": "hex color for alternating row background, empty string if none",
+                    "borderColor": "hex color of table borders e.g. #3949ab",
+                    "pageBgColor": "hex color of page or document background e.g. #ffffff"
+                  }
                 }
                 Rules:
                 - key must be unique snake_case
                 - type "date" for any date field, "number" for marks/roll number, "textarea" for multi-line content, "text" for everything else
                 - tableColumns only if hasTable is true, otherwise empty array []
-                - Include ALL visible blank fields
+                - For design colors: be precise, use the actual colors you see in the image
+                - If a color is white use #ffffff, black use #000000
+                - Include ALL visible blank fields and ALL table columns
                 """;
         } else {
             return """
@@ -178,6 +190,18 @@ public class TemplateService {
             tf.type = f.getOrDefault("type", "text");
             return tf;
         }).toList();
+
+        Map<String, Object> rawDesign = (Map<String, Object>) map.get("design");
+        if (rawDesign != null) {
+            TemplateParseResponse.DesignInfo d = new TemplateParseResponse.DesignInfo();
+            d.titleText       = (String) rawDesign.getOrDefault("titleText", resp.documentType);
+            d.headerBgColor   = (String) rawDesign.getOrDefault("headerBgColor", "#374151");
+            d.headerTextColor = (String) rawDesign.getOrDefault("headerTextColor", "#ffffff");
+            d.altRowBgColor   = (String) rawDesign.getOrDefault("altRowBgColor", "");
+            d.borderColor     = (String) rawDesign.getOrDefault("borderColor", "#d1d5db");
+            d.pageBgColor     = (String) rawDesign.getOrDefault("pageBgColor", "#ffffff");
+            resp.design = d;
+        }
 
         return resp;
     }

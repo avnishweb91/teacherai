@@ -133,71 +133,135 @@ async function generateExcelDoc(fields, values, tableRows, tableColumns, documen
   saveAs(new Blob([buf], { type: "application/octet-stream" }), `${documentType.replace(/\s+/g, "_")}_filled.xlsx`);
 }
 
-function generateImagePdf(fields, values, tableRows, tableColumns, documentType, imageDataUrl) {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+function hexToRgb(hex) {
+  if (!hex || !hex.startsWith("#")) return null;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+  return [r, g, b];
+}
+
+function generateImagePdf(fields, values, tableRows, tableColumns, documentType, imageDataUrl, design) {
+  const isLandscape = tableColumns && tableColumns.length > 5;
+  const doc = new jsPDF({ orientation: isLandscape ? "landscape" : "portrait", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
 
-  doc.setFontSize(16);
+  // Design colors — fall back to sensible defaults
+  const hdrBg    = hexToRgb(design?.headerBgColor)   || [55, 65, 81];
+  const hdrText  = hexToRgb(design?.headerTextColor) || [255, 255, 255];
+  const altRow   = hexToRgb(design?.altRowBgColor)   || null;
+  const border   = hexToRgb(design?.borderColor)     || [209, 213, 219];
+  const pageBg   = hexToRgb(design?.pageBgColor)     || [255, 255, 255];
+  const titleStr = design?.titleText || documentType;
+
+  // Page background
+  doc.setFillColor(...pageBg);
+  doc.rect(0, 0, pageW, pageH, "F");
+
+  // Title bar
+  doc.setFillColor(...hdrBg);
+  doc.rect(0, 0, pageW, 18, "F");
+  doc.setTextColor(...hdrText);
   doc.setFont("helvetica", "bold");
-  doc.text(documentType, pageW / 2, 20, { align: "center" });
+  doc.setFontSize(13);
+  doc.text(titleStr.toUpperCase(), pageW / 2, 12, { align: "center" });
 
-  if (imageDataUrl) {
-    try {
-      doc.addImage(imageDataUrl, "JPEG", 10, 28, pageW - 20, 60);
-    } catch {
-      // skip image if it can't be embedded
-    }
-  }
+  let y = 24;
 
-  let y = imageDataUrl ? 96 : 32;
-
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text("Filled Details", 14, y);
-  y += 6;
-  doc.setLineWidth(0.3);
-  doc.line(14, y, pageW - 14, y);
-  y += 6;
-
-  fields
-    .filter((f) => f.type !== "table")
-    .forEach((f) => {
-      if (y > 270) { doc.addPage(); y = 20; }
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text(`${f.label}:`, 14, y);
-      doc.setFont("helvetica", "normal");
-      const val = values[f.key] || "—";
-      const lines = doc.splitTextToSize(val, pageW - 80);
-      doc.text(lines, 70, y);
-      y += Math.max(7, lines.length * 5 + 2);
-    });
-
-  if (tableColumns && tableColumns.length > 0 && tableRows.length > 0) {
-    y += 4;
-    if (y > 260) { doc.addPage(); y = 20; }
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Table Data", 14, y);
-    y += 8;
-
-    const colW = (pageW - 28) / tableColumns.length;
+  // Non-table fields (school name, class, date, etc.) as a styled row of chips
+  const metaFields = fields.filter((f) => f.type !== "table");
+  if (metaFields.length > 0) {
     doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    tableColumns.forEach((col, i) => doc.text(col, 14 + i * colW, y));
-    y += 5;
-    doc.line(14, y, pageW - 14, y);
+    const colCount = Math.min(metaFields.length, 3);
+    const colW = (pageW - 20) / colCount;
+    let col = 0;
+
+    metaFields.forEach((f) => {
+      const x = 10 + col * colW;
+      // label
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...hdrBg);
+      doc.text(`${f.label}:`, x, y);
+      // value
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(30, 30, 30);
+      const val = values[f.key] || "—";
+      doc.text(val, x + doc.getTextWidth(`${f.label}:  `), y);
+
+      col++;
+      if (col >= colCount) { col = 0; y += 7; }
+    });
+
+    if (col !== 0) y += 7;
     y += 4;
 
-    doc.setFont("helvetica", "normal");
-    tableRows.forEach((row) => {
-      if (y > 270) { doc.addPage(); y = 20; }
-      row.forEach((cell, i) => doc.text(cell || "", 14 + i * colW, y));
-      y += 6;
-    });
+    // divider
+    doc.setDrawColor(...border);
+    doc.setLineWidth(0.4);
+    doc.line(10, y, pageW - 10, y);
+    y += 5;
   }
 
-  doc.save(`${documentType.replace(/\s+/g, "_")}_filled.pdf`);
+  // Table
+  if (tableColumns && tableColumns.length > 0 && tableRows.length > 0) {
+    const colW = (pageW - 20) / tableColumns.length;
+    const rowH = 9;
+    const tableStartY = y;
+
+    // Header row
+    doc.setFillColor(...hdrBg);
+    doc.rect(10, y, pageW - 20, rowH, "F");
+    doc.setTextColor(...hdrText);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    tableColumns.forEach((col, i) => {
+      const cx = 10 + i * colW + colW / 2;
+      doc.text(col, cx, y + 6, { align: "center" });
+    });
+    y += rowH;
+
+    // Data rows
+    tableRows.forEach((row, ri) => {
+      if (y + rowH > pageH - 10) { doc.addPage(); y = 15; }
+
+      // alternating row background
+      if (altRow && ri % 2 === 1) {
+        doc.setFillColor(...altRow);
+        doc.rect(10, y, pageW - 20, rowH, "F");
+      } else {
+        doc.setFillColor(255, 255, 255);
+        doc.rect(10, y, pageW - 20, rowH, "F");
+      }
+
+      // cell borders
+      doc.setDrawColor(...border);
+      doc.setLineWidth(0.2);
+      tableColumns.forEach((_, i) => {
+        doc.rect(10 + i * colW, y, colW, rowH);
+      });
+
+      // cell text
+      doc.setTextColor(30, 30, 30);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      tableColumns.forEach((_, i) => {
+        const cell = row[i] || "";
+        const cx = 10 + i * colW + colW / 2;
+        doc.text(cell, cx, y + 6, { align: "center" });
+      });
+
+      y += rowH;
+    });
+
+    // outer border around entire table
+    doc.setDrawColor(...hdrBg);
+    doc.setLineWidth(0.5);
+    doc.rect(10, tableStartY, pageW - 20, y - tableStartY);
+  }
+
+  doc.save(`${(design?.titleText || documentType).replace(/\s+/g, "_")}_filled.pdf`);
 }
 
 /* ════════════════════════════════════
@@ -215,6 +279,7 @@ export default function FormatFiller() {
   const [fields, setFields] = useState([]);
   const [hasTable, setHasTable] = useState(false);
   const [tableColumns, setTableColumns] = useState([]);
+  const [design, setDesign] = useState(null);
 
   const [values, setValues] = useState({});
   const [tableRows, setTableRows] = useState([[]]);
@@ -264,6 +329,7 @@ export default function FormatFiller() {
       setFields(data.fields || []);
       setHasTable(data.hasTable || false);
       setTableColumns(data.tableColumns || []);
+      setDesign(data.design || null);
       setValues({});
       setTableRows([new Array(data.tableColumns?.length || 0).fill("")]);
       setStep(2);
@@ -306,7 +372,7 @@ export default function FormatFiller() {
       } else if (fileType === "excel") {
         await generateExcelDoc(fields, values, tableRows, tableColumns, documentType);
       } else {
-        generateImagePdf(fields, values, tableRows, tableColumns, documentType, imagePreview);
+        generateImagePdf(fields, values, tableRows, tableColumns, documentType, imagePreview, design);
       }
     } catch (err) {
       console.error("Generation failed", err);
@@ -325,6 +391,7 @@ export default function FormatFiller() {
     setFields([]);
     setHasTable(false);
     setTableColumns([]);
+    setDesign(null);
     setValues({});
     setTableRows([[]]);
   }

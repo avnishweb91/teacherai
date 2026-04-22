@@ -45,7 +45,7 @@ export default function AuthPage() {
     }
   };
 
-  // Mobile — access_token via useGoogleLogin hook (no iframe, works on mobile data)
+  // Mobile — redirect flow (no popup, no iframe — works on all mobile networks)
   const mobileGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setGoogleError("");
@@ -61,6 +61,8 @@ export default function AuthPage() {
       }
     },
     onError: () => setGoogleError("Google sign-in was cancelled or failed."),
+    ux_mode: "redirect",
+    redirect_uri: window.location.origin + "/login",
   });
 
   return (

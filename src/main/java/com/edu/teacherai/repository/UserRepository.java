@@ -9,6 +9,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByMobile(String mobile);
     Optional<User> findByEmail(String email);
+    Optional<User> findByEmailIgnoreCase(String email);
     Optional<User> findByResetToken(String resetToken);
     java.util.List<User> findBySchoolId(Long schoolId);
     long countBySchoolId(Long schoolId);

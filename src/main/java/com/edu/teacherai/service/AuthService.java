@@ -303,16 +303,15 @@ public class AuthService {
             throw new RuntimeException("Email not available from Google");
         }
 
-        // 4. Find existing user by email, or create new one
-        User user = userRepo.findByEmail(email).orElse(null);
+        // 4. Find existing user by email (case-insensitive), or create new one
+        User user = userRepo.findByEmailIgnoreCase(email).orElse(null);
 
         boolean isNew = false;
         if (user == null) {
-            // New user — create account (mobile = synthetic google_<sub>)
             user = new User();
             user.setName(name);
-            user.setEmail(email);
-            user.setMobile("google_" + sub);   // synthetic unique mobile
+            user.setEmail(email.toLowerCase());
+            user.setMobile("google_" + sub);
             user.setRole("TEACHER");
             user.setPlanType("FREE");
             userRepo.save(user);
@@ -358,12 +357,12 @@ public class AuthService {
             throw new RuntimeException("Email not available from Google");
         }
 
-        User user = userRepo.findByEmail(email).orElse(null);
+        User user = userRepo.findByEmailIgnoreCase(email).orElse(null);
         boolean isNew = false;
         if (user == null) {
             user = new User();
             user.setName(name);
-            user.setEmail(email);
+            user.setEmail(email.toLowerCase());
             user.setMobile("google_" + sub);
             user.setRole("TEACHER");
             user.setPlanType("FREE");

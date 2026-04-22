@@ -43,7 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // 🔐 Protected endpoints
-                        .requestMatchers("/api/lesson/**", "/api/assessment/**", "/api/user/**", "/api/planner/**", "/api/reportcard/**", "/api/notice/**", "/api/payment/**", "/api/doubt/**", "/api/school/**", "/api/attendance/**", "/api/parent-contacts/**", "/api/syllabus/**")
+                        .requestMatchers("/api/lesson/**", "/api/assessment/**", "/api/user/**", "/api/planner/**", "/api/reportcard/**", "/api/notice/**", "/api/payment/**", "/api/doubt/**", "/api/school/**", "/api/attendance/**", "/api/parent-contacts/**", "/api/syllabus/**", "/api/template/**")
                         .authenticated()
 
                         .anyRequest().authenticated()

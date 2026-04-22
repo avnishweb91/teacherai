@@ -30,8 +30,9 @@ const NAV_ITEMS = [
   { to: "/exam",       icon: "📅", label: "Exam Schedule",          tour: null },
   { to: "/homework",   icon: "📓", label: "Homework Tracker",       tour: null },
   { to: "/parents",    icon: "👨‍👩‍👧", label: "Parent Communication",   tour: null },
-  { to: "/doubt",      icon: "💡", label: "Doubt Solver",           tour: null },
-  { to: "/profile",    icon: "👤", label: "Profile",                tour: "nav-profile" },
+  { to: "/doubt",         icon: "💡", label: "Doubt Solver",         tour: null },
+  { to: "/format-filler", icon: "📋", label: "Format Filler",       tour: null },
+  { to: "/profile",       icon: "👤", label: "Profile",             tour: "nav-profile" },
 ];
 
 export default function Sidebar({ open, onClose }) {

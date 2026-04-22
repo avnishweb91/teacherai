@@ -32,6 +32,7 @@ import HomeworkTracker from "./pages/HomeworkTracker";
 import ParentPortal from "./pages/ParentPortal";
 import ResetPassword from "./pages/ResetPassword";
 import LandingPage from "./pages/LandingPage";
+import FormatFiller from "./pages/FormatFiller";
 
 function getRoleFromToken() {
   try {
@@ -207,6 +208,9 @@ function AppRoutes() {
 
         {/* DOUBT SOLVER */}
         <Route path="/doubt" element={<ProtectedRoute><DoubtSolver /></ProtectedRoute>} />
+
+        {/* FORMAT FILLER */}
+        <Route path="/format-filler" element={<ProtectedRoute><FormatFiller /></ProtectedRoute>} />
 
         {/* RESET PASSWORD */}
         <Route path="/reset-password" element={<ResetPassword />} />

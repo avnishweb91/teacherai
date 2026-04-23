@@ -22,7 +22,8 @@ public class CorsConfig implements Filter {
         "http://localhost:5173",
         "http://localhost:3000",
         "https://smartboard.co.in",
-        "https://www.smartboard.co.in"
+        "https://www.smartboard.co.in",
+        "https://api.smartboard.co.in"
     );
 
     @Override

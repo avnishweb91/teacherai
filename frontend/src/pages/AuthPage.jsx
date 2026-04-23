@@ -1,12 +1,26 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { GoogleLogin, useGoogleLogin } from "@react-oauth/google";
+import { GoogleLogin } from "@react-oauth/google";
 import LoginEmail from "./LoginEmail";
 import SplashScreen from "./SplashScreen";
 import api from "../services/api";
 import "./auth.css";
 
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+
+// Constructs the OAuth URL and redirects — no Google JS library needed
+function triggerMobileGoogleLogin() {
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: window.location.origin + "/login",
+    response_type: "token",
+    scope: "email profile openid",
+    include_granted_scopes: "true",
+    prompt: "select_account",
+  });
+  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+}
 
 function getRoleFromToken() {
   try {
@@ -68,13 +82,6 @@ export default function AuthPage() {
       .finally(() => setGoogleLoading(false));
   }, []);
 
-  // Mobile — triggers the Google redirect
-  const mobileGoogleLogin = useGoogleLogin({
-    onSuccess: () => {},   // handled by useEffect above on redirect return
-    onError: () => setGoogleError("Google sign-in was cancelled or failed."),
-    ux_mode: "redirect",
-    redirect_uri: window.location.origin + "/login",
-  });
 
   return (
     <div className="auth-page">
@@ -126,7 +133,7 @@ export default function AuthPage() {
               </div>
             ) : isMobile ? (
               <button
-                onClick={() => mobileGoogleLogin()}
+                onClick={triggerMobileGoogleLogin}
                 style={{
                   width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
                   gap: 10, padding: "11px 16px", border: "1.5px solid #d1d5db", borderRadius: 8,

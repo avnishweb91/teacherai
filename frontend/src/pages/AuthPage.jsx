@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
+import { Helmet } from "react-helmet-async";
 import LoginEmail from "./LoginEmail";
 import SplashScreen from "./SplashScreen";
 import api from "../services/api";
@@ -86,6 +87,13 @@ export default function AuthPage() {
 
   return (
     <div className="auth-page">
+      <Helmet>
+        <title>Sign In — SmartBoard AI for Indian Teachers</title>
+        <meta name="description" content="Sign in to SmartBoard AI. Create AI-powered lesson plans, assessments, and report cards. Free for CBSE, ICSE &amp; State Board teachers across India." />
+        <link rel="canonical" href="https://www.smartboard.co.in/login" />
+        <meta property="og:title" content="Sign In — SmartBoard AI" />
+        <meta property="og:url" content="https://www.smartboard.co.in/login" />
+      </Helmet>
       {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
 
       {/* ── Left branding panel ── */}

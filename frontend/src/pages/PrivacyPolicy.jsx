@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 const SECTIONS = [
   {
@@ -105,6 +106,11 @@ const SECTIONS = [
 export default function PrivacyPolicy() {
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, #eff6ff 0%, #f5f3ff 50%, #f0fdf4 100%)", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+      <Helmet>
+        <title>Privacy Policy — SmartBoard AI</title>
+        <meta name="description" content="Read SmartBoard AI's privacy policy. We protect your data and never share it with third parties. Learn how we collect and use information from Indian school teachers." />
+        <link rel="canonical" href="https://www.smartboard.co.in/privacy" />
+      </Helmet>
 
       {/* Hero header */}
       <div style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #3730a3 50%, #6d28d9 100%)", padding: "52px 24px 44px", textAlign: "center", color: "#fff", position: "relative", overflow: "hidden" }}>

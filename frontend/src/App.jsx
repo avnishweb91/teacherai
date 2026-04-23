@@ -6,6 +6,7 @@ import {
   useNavigate
 } from "react-router-dom";
 import { useEffect } from "react";
+import { HelmetProvider } from "react-helmet-async";
 
 import Dashboard from "./pages/Dashboard";
 import GenerateLesson from "./pages/GenerateLesson";
@@ -241,8 +242,10 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <HelmetProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </HelmetProvider>
   );
 }

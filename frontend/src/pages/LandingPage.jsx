@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 const FEATURES = [
   {
@@ -111,15 +112,27 @@ const FAQS = [
   },
   {
     q: "Which boards does SmartBoard AI support?",
-    a: "SmartBoard AI supports CBSE, ICSE, and all State Boards including Bihar Board, UP Board, Maharashtra Board, and more. Content is generated in both Hindi and English.",
+    a: "SmartBoard AI supports CBSE, ICSE, and all State Boards including Bihar Board, UP Board, Maharashtra Board, Rajasthan Board, Gujarat Board, Tamil Nadu Board and more. Content is generated in both Hindi and English.",
   },
   {
     q: "Can my entire school use SmartBoard AI?",
     a: "Yes. Schools get a 7-day free trial for up to 5 teachers. After the trial, contact us for a custom school plan with unlimited teachers.",
   },
   {
+    q: "How does the AI lesson plan generator work?",
+    a: "Enter your class (1–12), subject, topic, board and duration. SmartBoard AI generates a complete lesson plan with learning objectives, teaching methods, activities and assessment questions — all in under 30 seconds.",
+  },
+  {
+    q: "Can I generate question papers with an answer key?",
+    a: "Yes. The AI question paper generator creates MCQ, short answer and long answer questions with full answer keys. You can set total marks, difficulty level and chapter coverage. Export to PDF instantly.",
+  },
+  {
     q: "Does it work on mobile?",
     a: "Yes. SmartBoard AI is fully responsive and works on any smartphone, tablet or computer. No app download needed — just open smartboard.co.in in your browser.",
+  },
+  {
+    q: "How much does PRO cost?",
+    a: "PRO costs ₹199/month with unlimited access to all tools — lesson plans, assessments, report card remarks, timetable builder, monthly planner and doubt solver. Pay via UPI, debit card or net banking.",
   },
   {
     q: "Is student data safe?",
@@ -130,6 +143,16 @@ const FAQS = [
 export default function LandingPage() {
   return (
     <div style={{ fontFamily: "sans-serif", color: "#1e293b", overflowX: "hidden" }}>
+      <Helmet>
+        <title>SmartBoard AI — AI Lesson Plans, Assessments &amp; Report Cards for Indian Teachers</title>
+        <meta name="description" content="SmartBoard AI helps Indian school teachers create lesson plans, question papers, report card remarks, attendance sheets and school notices in seconds. Free for CBSE, ICSE &amp; State Board teachers." />
+        <meta name="keywords" content="AI lesson plan generator India, question paper generator CBSE, report card remarks generator, school teacher app India, AI for teachers, SmartBoard AI, assessment generator, attendance management school, timetable builder, CBSE ICSE State Board" />
+        <link rel="canonical" href="https://www.smartboard.co.in/" />
+        <meta property="og:url" content="https://www.smartboard.co.in/" />
+        <meta property="og:title" content="SmartBoard AI — AI Teaching Assistant for Indian Schools" />
+        <meta property="og:description" content="Create lesson plans, question papers, attendance sheets and report card remarks in seconds. Free for CBSE, ICSE &amp; State Board teachers." />
+        <meta property="og:type" content="website" />
+      </Helmet>
 
       {/* ── NAV ── */}
       <nav style={{
@@ -206,6 +229,18 @@ export default function LandingPage() {
               <div style={{ fontSize: 30, fontWeight: 900, color: "#fff" }}>{s.value}</div>
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>{s.label}</div>
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── TRUST STRIP ── */}
+      <section style={{ padding: "20px 24px", background: "#fff", borderBottom: "1px solid #f1f5f9", textAlign: "center" }}>
+        <p style={{ fontSize: 13, color: "#94a3b8", margin: "0 0 10px", fontWeight: 500, letterSpacing: 0.5 }}>
+          TRUSTED BY TEACHERS ACROSS INDIA
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "6px 16px" }}>
+          {["Delhi", "Mumbai", "Bangalore", "Patna", "Lucknow", "Ranchi", "Jaipur", "Hyderabad", "Pune", "Kolkata", "Chennai", "Bhopal", "Chandigarh", "Nagpur", "Surat"].map(city => (
+            <span key={city} style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>{city}</span>
           ))}
         </div>
       </section>
@@ -370,6 +405,36 @@ export default function LandingPage() {
               </details>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── USE CASES ── */}
+      <section style={{ padding: "80px 24px", background: "#fff", textAlign: "center" }}>
+        <p style={{ color: "#d97706", fontWeight: 700, fontSize: 14, letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>Who Uses SmartBoard AI?</p>
+        <h2 style={{ fontSize: "clamp(22px, 4vw, 38px)", fontWeight: 800, margin: "0 0 12px" }}>
+          Built for Every Indian Teacher
+        </h2>
+        <p style={{ color: "#64748b", maxWidth: 560, margin: "0 auto 48px" }}>
+          Whether you teach in a government school, private school or coaching centre — SmartBoard AI adapts to your needs.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 20, maxWidth: 1000, margin: "0 auto" }}>
+          {[
+            { icon: "🏫", title: "Primary School Teachers", desc: "Generate fun, engaging lesson plans for Classes 1–5 with activities, stories and rhymes that keep young learners interested." },
+            { icon: "📐", title: "Secondary School Teachers", desc: "Create CBSE/ICSE-aligned lesson plans, question papers and chapter-wise syllabi for Classes 6–10 in under a minute." },
+            { icon: "🎓", title: "Senior Secondary Teachers", desc: "Build board exam question papers for Class 11–12 with chapter-specific MCQs, case studies and answer keys." },
+            { icon: "📋", title: "Class Teachers", desc: "Write personalised report card remarks, track attendance and manage parent communication — all from one dashboard." },
+            { icon: "🏛️", title: "Government School Teachers", desc: "State Board and SCERT-aligned content in Hindi and English. Works on basic smartphones with low internet speeds." },
+            { icon: "🔬", title: "Subject Teachers", desc: "Physics, Chemistry, Maths, Biology, English, Hindi, Social Science — detailed lesson plans and assessments for every subject." },
+          ].map(u => (
+            <div key={u.title} style={{
+              background: "#f8fafc", borderRadius: 14, padding: "24px 20px", textAlign: "left",
+              border: "1px solid #e2e8f0",
+            }}>
+              <div style={{ fontSize: 30, marginBottom: 12 }}>{u.icon}</div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 8px", color: "#1e293b" }}>{u.title}</h3>
+              <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.65, margin: 0 }}>{u.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 

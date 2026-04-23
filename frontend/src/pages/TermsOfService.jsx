@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 const SECTIONS = [
   {
@@ -107,6 +108,11 @@ const SECTIONS = [
 export default function TermsOfService() {
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, #f5f3ff 0%, #eff6ff 50%, #fdf2f8 100%)", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+      <Helmet>
+        <title>Terms &amp; Conditions — SmartBoard AI</title>
+        <meta name="description" content="Terms and conditions for using SmartBoard AI — the AI-powered teaching assistant for Indian schools. Read our usage policies, subscription terms and refund policy." />
+        <link rel="canonical" href="https://www.smartboard.co.in/terms" />
+      </Helmet>
 
       {/* Hero header */}
       <div style={{ background: "linear-gradient(135deg, #4c1d95 0%, #6d28d9 50%, #be185d 100%)", padding: "52px 24px 44px", textAlign: "center", color: "#fff", position: "relative", overflow: "hidden" }}>

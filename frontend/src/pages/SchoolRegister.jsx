@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import api from "../services/api";
 import "./auth.css";
 
@@ -43,6 +44,14 @@ export default function SchoolRegister() {
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <Helmet>
+        <title>Register Your School — SmartBoard AI for Indian Schools</title>
+        <meta name="description" content="Register your school on SmartBoard AI and give every teacher access to AI lesson plans, assessments, report cards and attendance management. 7-day free trial." />
+        <link rel="canonical" href="https://www.smartboard.co.in/school-register" />
+        <meta property="og:title" content="Register Your School — SmartBoard AI" />
+        <meta property="og:url" content="https://www.smartboard.co.in/school-register" />
+        <meta property="og:description" content="Give your whole school access to AI-powered teaching tools. 7-day free trial for up to 5 teachers. CBSE, ICSE &amp; State Board supported." />
+      </Helmet>
       <div style={{ background: "#fff", borderRadius: 20, padding: "40px 36px", width: "100%", maxWidth: 520, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
 
         {/* Header */}

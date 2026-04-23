@@ -9,14 +9,16 @@ import "./auth.css";
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
-// Constructs the OAuth URL and redirects — no Google JS library needed
+// Constructs OpenID Connect URL with id_token — no Google JS library needed
 function triggerMobileGoogleLogin() {
+  const nonce = Math.random().toString(36).slice(2);
+  sessionStorage.setItem("google_nonce", nonce);
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: window.location.origin + "/login",
-    response_type: "token",
+    response_type: "id_token",
     scope: "email profile openid",
-    include_granted_scopes: "true",
+    nonce,
     prompt: "select_account",
   });
   window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
@@ -59,21 +61,20 @@ export default function AuthPage() {
     }
   };
 
-  // Mobile — redirect flow: manually parse access_token from URL hash on return
+  // Mobile — parse id_token from URL hash on Google redirect return
   useEffect(() => {
-    if (!isMobile) return;
     const hash = window.location.hash;
-    if (!hash.includes("access_token")) return;
+    if (!hash.includes("id_token")) return;
 
     const params = new URLSearchParams(hash.slice(1));
-    const accessToken = params.get("access_token");
-    if (!accessToken) return;
+    const idToken = params.get("id_token");
+    if (!idToken) return;
 
-    // Clean the hash from the URL immediately
     window.history.replaceState(null, "", window.location.pathname);
+    sessionStorage.removeItem("google_nonce");
 
     setGoogleLoading(true);
-    api.post("/api/auth/google-mobile", { accessToken })
+    api.post("/api/auth/google", { idToken })
       .then((res) => {
         localStorage.setItem("token", res.data.token);
         setShowSplash(true);

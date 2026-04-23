@@ -74,13 +74,17 @@ public class AuthController {
        GOOGLE OAUTH LOGIN
        ========================= */
     @PostMapping("/google")
-    public ResponseEntity<AuthResponse> googleLogin(@RequestBody Map<String, String> req) {
+    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> req) {
         String idToken = req.get("idToken");
         if (idToken == null || idToken.isBlank()) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(Map.of("message", "idToken is required"));
         }
-        AuthResponse response = authService.googleLogin(idToken);
-        return ResponseEntity.ok(response);
+        try {
+            AuthResponse response = authService.googleLogin(idToken);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     /* Mobile flow — access_token (from useGoogleLogin hook) */

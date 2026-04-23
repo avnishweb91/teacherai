@@ -80,7 +80,10 @@ export default function AuthPage() {
         localStorage.setItem("token", res.data.token);
         setShowSplash(true);
       })
-      .catch(() => setGoogleError("Google sign-in failed. Please try again."))
+      .catch((err) => {
+        const detail = err?.response?.data?.message || err?.response?.data || err?.message || "";
+        setGoogleError("Google sign-in failed. " + (detail ? `(${detail})` : "Please try again."));
+      })
       .finally(() => setGoogleLoading(false));
   }, []);
 

@@ -45,21 +45,32 @@ export default function AuthPage() {
     }
   };
 
-  // Mobile — redirect flow (no popup, no iframe — works on all mobile networks)
-  const mobileGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setGoogleError("");
-      setGoogleLoading(true);
-      try {
-        const res = await api.post("/api/auth/google-mobile", { accessToken: tokenResponse.access_token });
+  // Mobile — redirect flow: manually parse access_token from URL hash on return
+  useEffect(() => {
+    if (!isMobile) return;
+    const hash = window.location.hash;
+    if (!hash.includes("access_token")) return;
+
+    const params = new URLSearchParams(hash.slice(1));
+    const accessToken = params.get("access_token");
+    if (!accessToken) return;
+
+    // Clean the hash from the URL immediately
+    window.history.replaceState(null, "", window.location.pathname);
+
+    setGoogleLoading(true);
+    api.post("/api/auth/google-mobile", { accessToken })
+      .then((res) => {
         localStorage.setItem("token", res.data.token);
         setShowSplash(true);
-      } catch {
-        setGoogleError("Google sign-in failed. Please try again.");
-      } finally {
-        setGoogleLoading(false);
-      }
-    },
+      })
+      .catch(() => setGoogleError("Google sign-in failed. Please try again."))
+      .finally(() => setGoogleLoading(false));
+  }, []);
+
+  // Mobile — triggers the Google redirect
+  const mobileGoogleLogin = useGoogleLogin({
+    onSuccess: () => {},   // handled by useEffect above on redirect return
     onError: () => setGoogleError("Google sign-in was cancelled or failed."),
     ux_mode: "redirect",
     redirect_uri: window.location.origin + "/login",

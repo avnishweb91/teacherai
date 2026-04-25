@@ -92,63 +92,130 @@ function buildRenderedHtml(htmlTemplate, fields, values, editableTables, tableDa
 
 /* ── PDF from HTML ── */
 async function downloadHtmlAsPdf(htmlContent, filename) {
-  // Mount in a wrapper that lets content decide its own width
   const wrapper = document.createElement("div");
   wrapper.style.cssText = "position:absolute;left:-9999px;top:0;background:#fff;display:inline-block;min-width:794px";
   wrapper.innerHTML = htmlContent;
   document.body.appendChild(wrapper);
 
-  // Measure natural content width after layout
   const naturalW = Math.max(wrapper.scrollWidth, 794);
+  const naturalH = wrapper.scrollHeight;
   wrapper.style.width = naturalW + "px";
 
   try {
     const canvas = await html2canvas(wrapper, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#fff",
-      width: naturalW,
-      windowWidth: naturalW,
+      scale: 2, useCORS: true, backgroundColor: "#fff",
+      width: naturalW, height: naturalH, windowWidth: naturalW,
     });
 
     const imgData = canvas.toDataURL("image/png");
-    const contentAspect = canvas.width / canvas.height; // px/px
+    const cW = canvas.width, cH = canvas.height;
 
-    // A4 dimensions in mm
+    // A4 mm
     const A4_W = 210, A4_H = 297;
-    // Use landscape if content is wider than tall relative to A4
-    const useLandscape = contentAspect > A4_W / A4_H;
-    const pageW = useLandscape ? A4_H : A4_W;  // mm
-    const pageH = useLandscape ? A4_W : A4_H;  // mm
 
-    const doc = new jsPDF({ orientation: useLandscape ? "landscape" : "portrait", unit: "mm", format: "a4" });
+    // Try portrait: scale image to fit page width, check if height fits
+    const portImgH = (cH / cW) * A4_W;
+    // Try landscape: scale image to fit page width (297mm), check height
+    const landImgH = (cH / cW) * A4_H;
 
-    // Scale image to fit page width exactly
-    const imgMmH = pageW / contentAspect;
+    let orientation, pageW, pageH, imgW, imgH;
 
-    if (imgMmH <= pageH) {
-      doc.addImage(imgData, "PNG", 0, 0, pageW, imgMmH);
+    if (portImgH <= A4_H) {
+      // Fits on one portrait page
+      orientation = "portrait"; pageW = A4_W; pageH = A4_H; imgW = A4_W; imgH = portImgH;
+    } else if (landImgH <= A4_W) {
+      // Fits on one landscape page
+      orientation = "landscape"; pageW = A4_H; pageH = A4_W; imgW = A4_H; imgH = landImgH;
     } else {
-      // Multi-page slice
-      const pxPerPage = Math.floor((pageH / imgMmH) * canvas.height);
-      let srcY = 0;
-      while (srcY < canvas.height) {
-        const sliceH = Math.min(pxPerPage, canvas.height - srcY);
-        const sliceCanvas = document.createElement("canvas");
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = sliceH;
-        sliceCanvas.getContext("2d").drawImage(canvas, 0, srcY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-        if (srcY > 0) doc.addPage();
-        const sliceMmH = (sliceH / canvas.height) * imgMmH;
-        doc.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, 0, pageW, sliceMmH);
-        srcY += sliceH;
-      }
+      // Too tall for one page — scale down to fit within landscape (maximises space)
+      // Scale by height to guarantee fit, even if content is slightly smaller
+      orientation = "landscape"; pageW = A4_H; pageH = A4_W;
+      imgH = A4_W;
+      imgW = (cW / cH) * A4_W;
+      if (imgW > A4_H) { imgW = A4_H; imgH = (cH / cW) * A4_H; }
     }
 
+    const doc = new jsPDF({ orientation, unit: "mm", format: "a4" });
+    doc.addImage(imgData, "PNG", 0, 0, imgW, imgH);
     doc.save(filename);
   } finally {
     document.body.removeChild(wrapper);
   }
+}
+
+/* ── Excel from image template ── */
+async function generateExcelFromImageTemplate(fields, values, editableTables, tableData, documentType) {
+  const XLSX = await import("xlsx");
+  const wb = XLSX.utils.book_new();
+
+  const wsData = [[documentType], []];
+  fields.forEach(f => wsData.push([f.label, values[f.key] || ""]));
+
+  editableTables.forEach(table => {
+    wsData.push([]);
+    if (table.title) wsData.push([table.title]);
+    wsData.push(table.columns);
+    (tableData[table.id] || table.rows || []).forEach(row => wsData.push([...row]));
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const maxW = Math.max(...(editableTables[0]?.columns || [""]).map(c => c.length), 20);
+  ws["!cols"] = Array(editableTables[0]?.columns?.length || 2).fill({ wch: maxW });
+
+  XLSX.utils.book_append_sheet(wb, ws, "Data");
+  const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  saveAs(new Blob([buf], { type: "application/octet-stream" }), `${documentType.replace(/\s+/g, "_")}_filled.xlsx`);
+}
+
+/* ── Word from image template ── */
+async function generateWordFromImageTemplate(fields, values, editableTables, tableData, documentType) {
+  const children = [
+    new Paragraph({
+      children: [new TextRun({ text: documentType, bold: true, size: 28 })],
+      alignment: AlignmentType.CENTER, spacing: { after: 300 },
+    }),
+  ];
+
+  fields.forEach(f => children.push(
+    new Paragraph({
+      children: [new TextRun({ text: `${f.label}: `, bold: true }), new TextRun({ text: values[f.key] || "" })],
+      spacing: { after: 160 },
+    })
+  ));
+
+  editableTables.forEach(table => {
+    if (table.title) {
+      children.push(new Paragraph({ children: [new TextRun({ text: table.title, bold: true })], spacing: { before: 300, after: 160 } }));
+    }
+
+    const cols = table.columns || [];
+    const rows = tableData[table.id] || table.rows || [];
+    if (cols.length === 0) return;
+
+    const colW = Math.floor(9000 / cols.length);
+
+    const headerRow = new TableRow({
+      children: cols.map(col => new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text: col, bold: true, color: "FFFFFF" })], alignment: AlignmentType.CENTER })],
+        shading: { fill: "374151", type: ShadingType.CLEAR, color: "auto" },
+        width: { size: colW, type: WidthType.DXA },
+      })),
+    });
+
+    const dataRows = rows.map((row, ri) => new TableRow({
+      children: cols.map((_, ci) => new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text: row[ci] || "" })], alignment: AlignmentType.CENTER })],
+        shading: ri % 2 === 1 ? { fill: "F3F4F6", type: ShadingType.CLEAR, color: "auto" } : undefined,
+        width: { size: colW, type: WidthType.DXA },
+      })),
+    }));
+
+    children.push(new Table({ rows: [headerRow, ...dataRows], width: { size: 9000, type: WidthType.DXA } }));
+    children.push(new Paragraph({ text: "", spacing: { after: 200 } }));
+  });
+
+  const blob = await Packer.toBlob(new Document({ sections: [{ children }] }));
+  saveAs(blob, `${documentType.replace(/\s+/g, "_")}_filled.docx`);
 }
 
 /* ── Word/Excel generators (word and excel file types) ── */
@@ -345,11 +412,14 @@ export default function FormatFiller() {
   }
 
   async function handleGenerate(format) {
-    setGenerating(format || "pdf");
+    setGenerating(format);
     try {
       if (fileType === "image") {
         const rendered = buildRenderedHtml(htmlTemplate, fields, values, editableTables, tableData, header);
-        await downloadHtmlAsPdf(rendered, `${documentType.replace(/\s+/g, "_")}_filled.pdf`);
+        const base = documentType.replace(/\s+/g, "_");
+        if (format === "pdf") await downloadHtmlAsPdf(rendered, `${base}_filled.pdf`);
+        else if (format === "excel") await generateExcelFromImageTemplate(fields, values, editableTables, tableData, documentType);
+        else if (format === "word") await generateWordFromImageTemplate(fields, values, editableTables, tableData, documentType);
       } else if (fileType === "word") {
         await generateWordDoc(fields, values, tableRows, tableColumns, documentType);
       } else if (fileType === "excel") {
@@ -638,9 +708,17 @@ export default function FormatFiller() {
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
               {fileType === "image" ? (
-                <button onClick={() => handleGenerate("pdf")} disabled={!!generating} style={primaryBtn}>
-                  {generating === "pdf" ? "Generating PDF…" : "Download PDF"}
-                </button>
+                <>
+                  <button onClick={() => handleGenerate("pdf")} disabled={!!generating} style={primaryBtn}>
+                    {generating === "pdf" ? "Generating…" : "⬇ PDF"}
+                  </button>
+                  <button onClick={() => handleGenerate("word")} disabled={!!generating} style={{ ...primaryBtn, background: "#2563eb" }}>
+                    {generating === "word" ? "Generating…" : "⬇ Word (.docx)"}
+                  </button>
+                  <button onClick={() => handleGenerate("excel")} disabled={!!generating} style={{ ...primaryBtn, background: "#16a34a" }}>
+                    {generating === "excel" ? "Generating…" : "⬇ Excel (.xlsx)"}
+                  </button>
+                </>
               ) : fileType === "word" ? (
                 <button onClick={() => handleGenerate("word")} disabled={!!generating} style={primaryBtn}>
                   {generating ? "Generating…" : "Download .docx"}

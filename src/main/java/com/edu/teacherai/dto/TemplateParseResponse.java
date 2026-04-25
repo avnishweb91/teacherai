@@ -10,6 +10,10 @@ public class TemplateParseResponse {
     public List<String> tableRowHeaders; // e.g. ["Monday","Tuesday",...] for timetables
     public DesignInfo design;
 
+    // Image-based template fields
+    public String htmlTemplate;           // complete inline-styled HTML with {{key}} and <!-- ROWS:id --> markers
+    public List<EditableTable> editableTables; // structured table data for image templates
+
     public static class TemplateField {
         public String key;
         public String label;
@@ -17,11 +21,20 @@ public class TemplateParseResponse {
     }
 
     public static class DesignInfo {
-        public String titleText;        // main title visible in the document
-        public String headerBgColor;    // hex, e.g. "#1a237e"
-        public String headerTextColor;  // hex, e.g. "#ffffff"
-        public String altRowBgColor;    // hex for alternating rows, empty if none
-        public String borderColor;      // hex for table borders
-        public String pageBgColor;      // hex for page/background color
+        public String titleText;
+        public String headerBgColor;
+        public String headerTextColor;
+        public String altRowBgColor;
+        public String borderColor;
+        public String pageBgColor;
+    }
+
+    public static class EditableTable {
+        public String id;
+        public String title;
+        public List<String> columns;
+        public List<List<String>> rows;
+        public String cellStyle;     // inline style applied to each data cell
+        public String altRowStyle;   // inline style for alternating rows (empty if none)
     }
 }

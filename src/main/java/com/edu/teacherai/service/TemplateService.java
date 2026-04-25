@@ -43,7 +43,7 @@ public class TemplateService {
         body.put("model", "gpt-4o");
         body.put("messages", messages);
         body.put("temperature", 0.2);
-        body.put("max_tokens", 1200);
+        body.put("max_tokens", 4096);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -77,37 +77,49 @@ public class TemplateService {
     private String buildUserPrompt(TemplateParseRequest req) {
         if ("image".equals(req.fileType)) {
             return """
-                Analyze this image of a document template/form used in an Indian school.
-                This could be a timetable, attendance sheet, report card, circular, mark sheet, or any other school document.
+                Analyze this image of a school document/form and reconstruct it as an HTML template.
 
-                IMPORTANT: Even if the document is mostly a table (like a timetable or routine chart),
-                you MUST detect its structure. Table cells that are empty or contain dashes are fillable.
-
-                Return ONLY this JSON (no markdown, no explanation):
+                Return ONLY valid JSON (no markdown, no code fences, no explanation):
                 {
-                  "documentType": "e.g. Class Timetable / Attendance Sheet / Report Card",
+                  "documentType": "exact document name from image",
+                  "htmlTemplate": "<complete HTML string>",
                   "fields": [
-                    {"key": "snake_case_key", "label": "Human Readable Label", "type": "text|date|number|textarea"}
+                    {"key": "snake_case_key", "label": "Human Readable Label", "type": "text|date|number"}
                   ],
-                  "hasTable": true or false,
-                  "tableColumns": ["Col1", "Col2", ...],
-                  "tableRowHeaders": ["Row1", "Row2", ...],
-                  "design": {
-                    "titleText": "exact main title text visible in the document",
-                    "headerBgColor": "hex color of table header row background e.g. #1a237e",
-                    "headerTextColor": "hex color of table header text e.g. #ffffff",
-                    "altRowBgColor": "hex color for alternating row background, empty string if none",
-                    "borderColor": "hex color of table borders e.g. #3949ab",
-                    "pageBgColor": "hex color of page/background e.g. #ffffff"
-                  }
+                  "editableTables": [
+                    {
+                      "id": "snake_case_id",
+                      "title": "Section Title",
+                      "columns": ["Col1", "Col2", "Col3"],
+                      "rows": [["val1", "val2", "val3"]],
+                      "cellStyle": "border:1px solid #ccc; padding:4px 8px; text-align:center; font-size:13px",
+                      "altRowStyle": ""
+                    }
+                  ]
                 }
-                Rules:
-                - fields = header-level info like School Name, Class, Section, Date, Teacher Name etc. Can be empty array [] if none.
-                - tableColumns = ALL column headers in the table (e.g. for timetable: ["Day","Period 1","Period 2",...])
-                - tableRowHeaders = the fixed row labels in the leftmost column (e.g. ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"] for a timetable). Empty array [] if rows have no fixed labels.
-                - hasTable must be true if there is ANY grid, table, or schedule structure in the document
-                - For design colors: pick the actual colors you see. If unsure use #374151 for header, #ffffff for text.
-                - Include ALL columns and ALL row headers you can see
+
+                htmlTemplate rules (IMPORTANT):
+                - Use ONLY inline styles — no <style> tags, no class attributes
+                - Outer container: <div style='width:794px; font-family:Arial,sans-serif; background:#fff; padding:0; margin:0'>
+                - Reproduce ALL visual sections: title bars, section headers, tables, instruction lists, footers
+                - Match colors from the image exactly (backgrounds, text, borders)
+                - Use single quotes inside HTML attribute values so the JSON string stays valid
+                - Use {{key}} as placeholder text for scalar fillable fields (e.g. {{class_name}})
+                - For each table/list, put the table element with styled header rows hardcoded, and inside the <tbody> write exactly: <!-- ROWS:id --> where id matches the editableTable id
+                - Borders, padding, font-sizes, alignments must match the original as closely as possible
+                - Keep the HTML compact (no unnecessary whitespace or newlines inside the JSON string)
+
+                fields rules:
+                - Only scalar values that change per use: class, section, school name, year, date, etc.
+                - Do NOT include individual table cell values here
+
+                editableTables rules:
+                - One entry per distinct table, grid, or list in the document
+                - id must exactly match what you used in <!-- ROWS:id --> in the htmlTemplate
+                - columns: ALL column headers as seen in the image
+                - rows: pre-fill with ALL data rows visible in the original image
+                - cellStyle: inline CSS that matches the original data cell appearance
+                - altRowStyle: alternating row background style, or empty string if none
                 """;
         } else {
             return """
@@ -185,6 +197,26 @@ public class TemplateService {
         resp.hasTable = Boolean.TRUE.equals(map.get("hasTable"));
         resp.tableColumns = (List<String>) map.getOrDefault("tableColumns", List.of());
         resp.tableRowHeaders = (List<String>) map.getOrDefault("tableRowHeaders", List.of());
+
+        // HTML template (image-based path)
+        resp.htmlTemplate = (String) map.get("htmlTemplate");
+
+        // Editable tables (image-based path)
+        List<Map<String, Object>> rawTables = (List<Map<String, Object>>) map.get("editableTables");
+        if (rawTables != null) {
+            resp.editableTables = rawTables.stream().map(t -> {
+                TemplateParseResponse.EditableTable et = new TemplateParseResponse.EditableTable();
+                et.id = (String) t.getOrDefault("id", "table_" + UUID.randomUUID().toString().substring(0, 6));
+                et.title = (String) t.getOrDefault("title", "");
+                et.columns = (List<String>) t.getOrDefault("columns", List.of());
+                et.rows = (List<List<String>>) t.getOrDefault("rows", List.of());
+                et.cellStyle = (String) t.getOrDefault("cellStyle", "border:1px solid #ccc; padding:4px 8px; text-align:center");
+                et.altRowStyle = (String) t.getOrDefault("altRowStyle", "");
+                return et;
+            }).toList();
+        } else {
+            resp.editableTables = List.of();
+        }
 
         List<Map<String, String>> rawFields = (List<Map<String, String>>) map.getOrDefault("fields", List.of());
         resp.fields = rawFields.stream().map(f -> {

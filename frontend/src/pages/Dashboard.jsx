@@ -93,6 +93,15 @@ export default function Dashboard() {
           <div className="action-card-arrow">Create assessment →</div>
         </button>
 
+        <button className="action-card" onClick={() => navigate("/question-paper")}>
+          <div className="action-card-icon">📋</div>
+          <div className="action-card-title">Question Paper Builder</div>
+          <div className="action-card-desc">
+            Build custom question papers with text and image-based questions. Download as Word file instantly.
+          </div>
+          <div className="action-card-arrow">Build paper →</div>
+        </button>
+
         <button className="action-card" onClick={() => navigate("/history")}>
           <div className="action-card-icon">📂</div>
           <div className="action-card-title">Lesson History</div>

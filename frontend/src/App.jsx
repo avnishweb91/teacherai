@@ -34,6 +34,7 @@ import ParentPortal from "./pages/ParentPortal";
 import ResetPassword from "./pages/ResetPassword";
 import LandingPage from "./pages/LandingPage";
 import FormatFiller from "./pages/FormatFiller";
+import QuestionPaperBuilder from "./pages/QuestionPaperBuilder";
 
 function getRoleFromToken() {
   try {
@@ -212,6 +213,9 @@ function AppRoutes() {
 
         {/* FORMAT FILLER */}
         <Route path="/format-filler" element={<ProtectedRoute><FormatFiller /></ProtectedRoute>} />
+
+        {/* QUESTION PAPER BUILDER */}
+        <Route path="/question-paper" element={<ProtectedRoute><QuestionPaperBuilder /></ProtectedRoute>} />
 
         {/* RESET PASSWORD */}
         <Route path="/reset-password" element={<ResetPassword />} />

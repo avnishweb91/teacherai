@@ -92,27 +92,45 @@ function buildRenderedHtml(htmlTemplate, fields, values, editableTables, tableDa
 
 /* ── PDF from HTML ── */
 async function downloadHtmlAsPdf(htmlContent, filename) {
-  const container = document.createElement("div");
-  container.style.cssText = "position:absolute;left:-9999px;top:0;width:794px;background:#fff";
-  container.innerHTML = htmlContent;
-  document.body.appendChild(container);
+  // Mount in a wrapper that lets content decide its own width
+  const wrapper = document.createElement("div");
+  wrapper.style.cssText = "position:absolute;left:-9999px;top:0;background:#fff;display:inline-block;min-width:794px";
+  wrapper.innerHTML = htmlContent;
+  document.body.appendChild(wrapper);
+
+  // Measure natural content width after layout
+  const naturalW = Math.max(wrapper.scrollWidth, 794);
+  wrapper.style.width = naturalW + "px";
 
   try {
-    const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: "#fff", width: 794 });
+    const canvas = await html2canvas(wrapper, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#fff",
+      width: naturalW,
+      windowWidth: naturalW,
+    });
+
     const imgData = canvas.toDataURL("image/png");
-    const pageW = 210; // A4 mm
-    const imgH = (canvas.height / canvas.width) * pageW;
+    const contentAspect = canvas.width / canvas.height; // px/px
 
-    const doc = new jsPDF({ orientation: imgH > 297 ? "portrait" : "portrait", unit: "mm", format: "a4" });
+    // A4 dimensions in mm
+    const A4_W = 210, A4_H = 297;
+    // Use landscape if content is wider than tall relative to A4
+    const useLandscape = contentAspect > A4_W / A4_H;
+    const pageW = useLandscape ? A4_H : A4_W;  // mm
+    const pageH = useLandscape ? A4_W : A4_H;  // mm
 
-    let y = 0;
-    const pageH = 297;
+    const doc = new jsPDF({ orientation: useLandscape ? "landscape" : "portrait", unit: "mm", format: "a4" });
 
-    if (imgH <= pageH) {
-      doc.addImage(imgData, "PNG", 0, 0, pageW, imgH);
+    // Scale image to fit page width exactly
+    const imgMmH = pageW / contentAspect;
+
+    if (imgMmH <= pageH) {
+      doc.addImage(imgData, "PNG", 0, 0, pageW, imgMmH);
     } else {
-      // Multi-page: slice canvas
-      const pxPerPage = Math.floor((pageH / imgH) * canvas.height);
+      // Multi-page slice
+      const pxPerPage = Math.floor((pageH / imgMmH) * canvas.height);
       let srcY = 0;
       while (srcY < canvas.height) {
         const sliceH = Math.min(pxPerPage, canvas.height - srcY);
@@ -121,16 +139,15 @@ async function downloadHtmlAsPdf(htmlContent, filename) {
         sliceCanvas.height = sliceH;
         sliceCanvas.getContext("2d").drawImage(canvas, 0, srcY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
         if (srcY > 0) doc.addPage();
-        const sliceData = sliceCanvas.toDataURL("image/png");
-        const sliceMmH = (sliceH / canvas.height) * imgH;
-        doc.addImage(sliceData, "PNG", 0, 0, pageW, sliceMmH);
+        const sliceMmH = (sliceH / canvas.height) * imgMmH;
+        doc.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, 0, pageW, sliceMmH);
         srcY += sliceH;
       }
     }
 
     doc.save(filename);
   } finally {
-    document.body.removeChild(container);
+    document.body.removeChild(wrapper);
   }
 }
 
@@ -567,9 +584,9 @@ export default function FormatFiller() {
             {fileType === "image" && previewHtml && (
               <div style={{ ...card, marginTop: 16 }}>
                 <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, marginTop: 0 }}>Live Preview</p>
-                <div style={{ overflowX: "auto", border: "1px solid #e5e7eb", borderRadius: 8, background: "#f9fafb" }}>
+                <div style={{ overflowX: "auto", border: "1px solid #e5e7eb", borderRadius: 8, background: "#f9fafb", padding: 8 }}>
                   <div
-                    style={{ transform: "scale(0.75)", transformOrigin: "top left", width: "794px" }}
+                    style={{ transform: "scale(0.7)", transformOrigin: "top left", display: "inline-block", minWidth: 794 }}
                     dangerouslySetInnerHTML={{ __html: previewHtml }}
                   />
                 </div>
@@ -594,8 +611,8 @@ export default function FormatFiller() {
             {fileType === "image" && previewHtml && (
               <div style={{ ...card, marginBottom: 16 }}>
                 <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, marginTop: 0 }}>Document Preview</p>
-                <div style={{ overflowX: "auto", border: "1px solid #e5e7eb", borderRadius: 8, background: "#fff" }}>
-                  <div dangerouslySetInnerHTML={{ __html: previewHtml }} style={{ width: 794 }} />
+                <div style={{ overflowX: "auto", border: "1px solid #e5e7eb", borderRadius: 8, background: "#fff", padding: 8 }}>
+                  <div dangerouslySetInnerHTML={{ __html: previewHtml }} style={{ display: "inline-block", minWidth: 794 }} />
                 </div>
               </div>
             )}

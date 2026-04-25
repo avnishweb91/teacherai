@@ -156,15 +156,17 @@ export default function AuthPage() {
                 Continue with Google
               </button>
             ) : (
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => setGoogleError("Google sign-in was cancelled or failed.")}
-                width="100%"
-                text="continue_with"
-                shape="rectangular"
-                theme="outline"
-                logo_alignment="left"
-              />
+              <div style={{ width: "100%" }}>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setGoogleError("Google sign-in was cancelled or failed.")}
+                  width={380}
+                  text="continue_with"
+                  shape="rectangular"
+                  theme="outline"
+                  logo_alignment="left"
+                />
+              </div>
             )}
           </div>
 

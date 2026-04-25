@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import api from "../services/api";
 import jsPDF from "jspdf";
@@ -43,8 +43,25 @@ function detectFileType(file) {
   return null;
 }
 
+/* ── Page header builder ── */
+function buildHeaderHtml(header) {
+  const { logo, schoolName, address, customText } = header;
+  const hasAny = logo || schoolName || address || customText;
+  if (!hasAny) return "";
+  return `
+    <div style='width:794px;font-family:Arial,sans-serif;padding:16px 24px 12px;border-bottom:2px solid #e5e7eb;display:flex;align-items:center;gap:16px;background:#fff;box-sizing:border-box'>
+      ${logo ? `<img src='${logo}' alt='logo' style='height:72px;width:72px;object-fit:contain;flex-shrink:0' />` : ""}
+      <div style='flex:1;text-align:center'>
+        ${schoolName ? `<div style='font-size:20px;font-weight:700;color:#111827;line-height:1.3'>${schoolName}</div>` : ""}
+        ${address ? `<div style='font-size:13px;color:#4b5563;margin-top:3px'>${address}</div>` : ""}
+        ${customText ? `<div style='font-size:13px;color:#4b5563;margin-top:2px'>${customText}</div>` : ""}
+      </div>
+      ${logo ? `<div style='width:72px;flex-shrink:0'></div>` : ""}
+    </div>`;
+}
+
 /* ── HTML template helpers ── */
-function buildRenderedHtml(htmlTemplate, fields, values, editableTables, tableData) {
+function buildRenderedHtml(htmlTemplate, fields, values, editableTables, tableData, header) {
   if (!htmlTemplate) return "";
   let html = htmlTemplate;
 
@@ -67,7 +84,10 @@ function buildRenderedHtml(htmlTemplate, fields, values, editableTables, tableDa
     html = html.replace(`<!-- ROWS:${table.id} -->`, rowsHtml);
   }
 
-  return html;
+  const headerHtml = buildHeaderHtml(header || {});
+  return headerHtml
+    ? `<div style='font-family:Arial,sans-serif;background:#fff'>${headerHtml}${html}</div>`
+    : html;
 }
 
 /* ── PDF from HTML ── */
@@ -192,7 +212,12 @@ export default function FormatFiller() {
   const [tableRows, setTableRows] = useState([[]]);  // for word/excel path
   const [generating, setGenerating] = useState(false);
 
+  // Optional page header
+  const [header, setHeader] = useState({ logo: "", schoolName: "", address: "", customText: "" });
+  const [headerOpen, setHeaderOpen] = useState(false);
+
   const fileInputRef = useRef(null);
+  const logoInputRef = useRef(null);
 
   async function handleFile(selected) {
     setParseError("");
@@ -261,6 +286,14 @@ export default function FormatFiller() {
     }
   }
 
+  function handleLogoUpload(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setHeader(prev => ({ ...prev, logo: ev.target.result }));
+    reader.readAsDataURL(f);
+  }
+
   function setValue(key, val) {
     setValues((prev) => ({ ...prev, [key]: val }));
   }
@@ -298,7 +331,7 @@ export default function FormatFiller() {
     setGenerating(format || "pdf");
     try {
       if (fileType === "image") {
-        const rendered = buildRenderedHtml(htmlTemplate, fields, values, editableTables, tableData);
+        const rendered = buildRenderedHtml(htmlTemplate, fields, values, editableTables, tableData, header);
         await downloadHtmlAsPdf(rendered, `${documentType.replace(/\s+/g, "_")}_filled.pdf`);
       } else if (fileType === "word") {
         await generateWordDoc(fields, values, tableRows, tableColumns, documentType);
@@ -316,10 +349,11 @@ export default function FormatFiller() {
     setStep(1); setFile(null); setFileType(null); setImagePreview(null); setParseError("");
     setDocumentType(""); setFields([]); setHasTable(false); setTableColumns([]); setTableRowHeaders([]);
     setHtmlTemplate(""); setEditableTables([]); setTableData({}); setValues({}); setTableRows([[]]);
+    setHeader({ logo: "", schoolName: "", address: "", customText: "" }); setHeaderOpen(false);
   }
 
   const previewHtml = fileType === "image"
-    ? buildRenderedHtml(htmlTemplate, fields, values, editableTables, tableData)
+    ? buildRenderedHtml(htmlTemplate, fields, values, editableTables, tableData, header)
     : "";
 
   return (
@@ -375,6 +409,62 @@ export default function FormatFiller() {
                 </p>
               </div>
               <button onClick={() => setStep(1)} style={ghostBtn}>← Back</button>
+            </div>
+
+            {/* Optional page header */}
+            <div style={{ ...card, marginBottom: 16 }}>
+              <button
+                onClick={() => setHeaderOpen(o => !o)}
+                style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 600, fontSize: 14, color: "#6366f1", padding: 0, display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <span style={{ fontSize: 16 }}>{headerOpen ? "▾" : "▸"}</span>
+                Page Header (optional) — school logo, name, address
+              </button>
+
+              {headerOpen && (
+                <div style={{ marginTop: 16, display: "grid", gap: 14 }}>
+                  {/* Logo upload */}
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 }}>School Logo</label>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      {header.logo
+                        ? <img src={header.logo} alt="logo" style={{ height: 56, width: 56, objectFit: "contain", border: "1px solid #e5e7eb", borderRadius: 6 }} />
+                        : <div style={{ height: 56, width: 56, border: "1.5px dashed #d1d5db", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: 22 }}>🏫</div>
+                      }
+                      <div>
+                        <button onClick={() => logoInputRef.current?.click()} style={{ ...ghostBtn, padding: "7px 14px", fontSize: 13 }}>
+                          {header.logo ? "Change Logo" : "Upload Logo"}
+                        </button>
+                        {header.logo && (
+                          <button onClick={() => setHeader(p => ({ ...p, logo: "" }))} style={{ ...ghostBtn, padding: "7px 14px", fontSize: 13, marginLeft: 8, color: "#ef4444", borderColor: "#fca5a5" }}>Remove</button>
+                        )}
+                      </div>
+                      <input ref={logoInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleLogoUpload} />
+                    </div>
+                  </div>
+
+                  {/* School name */}
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 5 }}>School Name</label>
+                    <input type="text" value={header.schoolName} onChange={e => setHeader(p => ({ ...p, schoolName: e.target.value }))}
+                      style={inputStyle} placeholder="e.g. DAV Public School" />
+                  </div>
+
+                  {/* Address */}
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Address</label>
+                    <input type="text" value={header.address} onChange={e => setHeader(p => ({ ...p, address: e.target.value }))}
+                      style={inputStyle} placeholder="e.g. Sector 14, Patna — 800001" />
+                  </div>
+
+                  {/* Custom text */}
+                  <div>
+                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 5 }}>Custom Text <span style={{ fontWeight: 400, color: "#9ca3af" }}>(shown below address)</span></label>
+                    <input type="text" value={header.customText} onChange={e => setHeader(p => ({ ...p, customText: e.target.value }))}
+                      style={inputStyle} placeholder="e.g. Ph: 0612-123456 | Email: info@davpatna.edu" />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: fileType === "image" && editableTables.length > 0 ? "1fr 1fr" : "1fr", gap: 16 }}>

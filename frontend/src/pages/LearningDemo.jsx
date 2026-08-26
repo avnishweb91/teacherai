@@ -51,7 +51,12 @@ export default function LearningDemo() {
     const chapter = SUBJECTS[activeSubject].chapters[activeChapter];
     api.get("/api/videos/chapter", { params: { grade: "Class 7", subject: activeSubject, chapter }, _skipAuthRedirect: true })
       .then(({ data }) => setVideo({ id: data.id, url: `${api.defaults.baseURL}/api/videos/${data.id}/stream`, name: data.title, persistent: true }))
-      .catch((error) => { if (error.response?.status === 404) setVideo(null); });
+      .catch((error) => {
+        if (error.response?.status !== 404) return;
+        api.get("/api/videos/sample", { _skipAuthRedirect: true }).then(({ data }) => {
+          setVideo(data ? { url: `${api.defaults.baseURL}/api/videos/sample/stream?key=${encodeURIComponent(data.key)}`, name: data.title, persistent: true } : null);
+        }).catch(() => setVideo(null));
+      });
   }, [activeSubject, activeChapter]);
   const upload = (event) => {
     const file = event.target.files?.[0];

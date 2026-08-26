@@ -26,6 +26,16 @@ public class VideoController {
     public ResponseEntity<LessonVideo> chapter(@RequestParam String grade, @RequestParam String subject, @RequestParam String chapter) { LessonVideo video = storage.chapter(grade, subject, chapter); return video == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(video); }
     @DeleteMapping("/api/admin/videos/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) { storage.delete(id); return ResponseEntity.noContent().build(); }
+    @GetMapping("/api/videos/sample")
+    public Map<String, String> sample() { return storage.sampleVideo(); }
+    @GetMapping("/api/videos/sample/stream")
+    public void streamSample(@RequestParam String key, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        ResponseInputStream<GetObjectResponse> body = storage.readKey(key, request.getHeader("Range"));
+        GetObjectResponse meta = body.response(); response.setContentType(meta.contentType() == null ? storage.contentTypeFor(key) : meta.contentType()); response.setHeader("Accept-Ranges", "bytes");
+        if (request.getHeader("Range") != null) { response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT); response.setHeader("Content-Range", meta.contentRange()); }
+        if (meta.contentLength() != null) response.setContentLengthLong(meta.contentLength());
+        try (body) { body.transferTo(response.getOutputStream()); }
+    }
     @GetMapping("/api/videos/{id}/stream")
     public void stream(@PathVariable Long id, HttpServletRequest request, HttpServletResponse response) throws IOException {
         LessonVideo video = storage.get(id); String range = request.getHeader("Range");

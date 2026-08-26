@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/api/student/**", "/api/school/register", "/api/admin/setup", "/h2-console/**", "/actuator/health").permitAll()
                         // Video files remain private in the Bucket; this is the controlled playback proxy.
                         .requestMatchers(HttpMethod.GET, "/api/videos/*/stream").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/videos/sample/**").permitAll()
 
                         // 🔒 Admin only
                         .requestMatchers("/api/admin/videos/**").hasAnyRole("ADMIN", "SCHOOL_ADMIN")

@@ -165,6 +165,7 @@ export default function LandingPage() {
         <span style={{ fontWeight: 800, fontSize: 20, color: "#1e3a8a" }}>🎓 SmartBoard AI</span>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <a href="#features" style={{ color: "#475569", fontSize: 14, textDecoration: "none", fontWeight: 500 }}>Features</a>
+          <Link to="/learn" style={{ color: "#475569", fontSize: 14, textDecoration: "none", fontWeight: 600 }}>Learning Demo</Link>
           <a href="#pricing" style={{ color: "#475569", fontSize: 14, textDecoration: "none", fontWeight: 500 }}>Pricing</a>
           <a href="#faq" style={{ color: "#475569", fontSize: 14, textDecoration: "none", fontWeight: 500 }}>FAQ</a>
           <Link to="/login" style={{

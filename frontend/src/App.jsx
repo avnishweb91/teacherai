@@ -35,6 +35,7 @@ import ResetPassword from "./pages/ResetPassword";
 import LandingPage from "./pages/LandingPage";
 import FormatFiller from "./pages/FormatFiller";
 import QuestionPaperBuilder from "./pages/QuestionPaperBuilder";
+import LearningDemo from "./pages/LearningDemo";
 
 function getRoleFromToken() {
   try {
@@ -223,6 +224,9 @@ function AppRoutes() {
         {/* PUBLIC LEGAL PAGES */}
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
+
+        {/* STUDENT LEARNING DEMO */}
+        <Route path="/learn" element={<LearningDemo />} />
 
         {/* ROOT + FALLBACK */}
         <Route

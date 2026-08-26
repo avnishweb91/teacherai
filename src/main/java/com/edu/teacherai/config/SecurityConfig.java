@@ -37,7 +37,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // ✅ Public endpoints
-                        .requestMatchers("/api/auth/**", "/api/school/register", "/api/admin/setup", "/h2-console/**", "/actuator/health").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/student/**", "/api/school/register", "/api/admin/setup", "/h2-console/**", "/actuator/health").permitAll()
 
                         // 🔒 Admin only
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

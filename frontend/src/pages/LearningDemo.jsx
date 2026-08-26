@@ -93,7 +93,7 @@ export default function LearningDemo() {
       <button className={page === "progress" ? "nav-item active" : "nav-item"} onClick={() => setPage("progress")}><span>◔</span> My progress</button>
       <div className="sidebar-label subject-label">SUBJECTS</div>
       {Object.entries(SUBJECTS).map(([name, data]) => <button className={activeSubject === name ? "subject-item chosen" : "subject-item"} key={name} onClick={() => pickSubject(name)}><i style={{ background: data.color }} />{name}<span>{data.chapters.length}</span></button>)}
-      <div className="sidebar-bottom"><button onClick={() => setPage("admin")}>⚙ Admin upload panel</button><button onClick={() => showToast("Signed out of demo")}>↪ Sign out</button></div>
+      <div className="sidebar-bottom"><button onClick={() => showToast("Signed out of demo")}>↪ Sign out</button></div>
     </aside>
 
     <main className="learn-main">

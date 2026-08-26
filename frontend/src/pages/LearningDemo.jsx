@@ -46,13 +46,30 @@ export default function LearningDemo() {
   const chapters = SUBJECTS[activeSubject].chapters;
   const score = useMemo(() => Object.entries(answers).reduce((n, [i, a]) => n + (QUESTIONS[i].correct === a ? 1 : 0), 0), [answers]);
 
-  useEffect(() => () => video && URL.revokeObjectURL(video.url), [video]);
+  useEffect(() => () => video?.local && URL.revokeObjectURL(video.url), [video]);
+  useEffect(() => {
+    const chapter = SUBJECTS[activeSubject].chapters[activeChapter];
+    api.get("/api/videos/chapter", { params: { grade: "Class 7", subject: activeSubject, chapter }, _skipAuthRedirect: true })
+      .then(({ data }) => setVideo({ id: data.id, url: `${api.defaults.baseURL}/api/videos/${data.id}/stream`, name: data.title, persistent: true }))
+      .catch((error) => { if (error.response?.status === 404) setVideo(null); });
+  }, [activeSubject, activeChapter]);
   const upload = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (video) URL.revokeObjectURL(video.url);
-    setVideo({ url: URL.createObjectURL(file), name: file.name, size: file.size });
-    setToast("Video ready for this demo");
+    if (video?.local) URL.revokeObjectURL(video.url);
+    setVideo({ url: URL.createObjectURL(file), name: file.name, size: file.size, file, local: true });
+    setToast("Video selected — publish it to save permanently");
+  };
+  const publishVideo = async () => {
+    if (!video?.file) return showToast("Choose a video file first");
+    const data = new FormData();
+    data.append("file", video.file); data.append("title", video.name.replace(/\.[^.]+$/, "")); data.append("grade", "Class 7"); data.append("subject", activeSubject); data.append("chapter", chapters[activeChapter]);
+    try {
+      const result = await api.post("/api/admin/videos/upload", data);
+      if (video.local) URL.revokeObjectURL(video.url);
+      setVideo({ id: result.data.id, url: `${api.defaults.baseURL}/api/videos/${result.data.id}/stream`, name: result.data.title, persistent: true });
+      showToast("Published — this video is now saved in Railway Bucket");
+    } catch (error) { showToast(error.response?.data?.message || "Upload failed. Sign in with an admin account first."); }
   };
   const pickSubject = (name) => { setActiveSubject(name); setActiveChapter(0); setSubmitted(false); setAnswers({}); };
   const showToast = (message) => { setToast(message); window.setTimeout(() => setToast(""), 2800); };
@@ -85,7 +102,7 @@ export default function LearningDemo() {
         <section className="quiz-section"><div className="quiz-heading"><div><p className="kicker">KNOWLEDGE CHECK</p><h2>Quick practice</h2><p>Answer these 3 questions to complete the lesson.</p></div><span className="points">+30 XP</span></div>{QUESTIONS.map((item, index) => <div className="question" key={item.q}><b><span>{index + 1}</span>{item.q}</b><div className="answers">{item.answers.map((answer, answerIndex) => <button key={answer} disabled={submitted} className={answers[index] === answerIndex ? (submitted ? (answerIndex === item.correct ? "answer correct" : "answer wrong") : "answer selected") : submitted && answerIndex === item.correct ? "answer correct" : "answer"} onClick={() => setAnswers({ ...answers, [index]: answerIndex })}>{String.fromCharCode(65 + answerIndex)}<em>{answer}</em></button>)}</div></div>)}<div className="quiz-footer">{submitted ? <div className="result">{score === 3 ? "Excellent work! " : "Nice effort! "}<b>{score}/3 correct</b> · Your progress has been updated.</div> : <span>{Object.keys(answers).length}/3 answered</span>}<button className="primary" disabled={Object.keys(answers).length !== 3 || submitted} onClick={() => setSubmitted(true)}>{submitted ? "Completed ✓" : "Check answers"}</button></div></section>
       </>}
       {page === "progress" && <ProgressView />}
-      {page === "admin" && <AdminView video={video} upload={upload} notify={showToast} student={student} setStudent={setStudent} />}
+      {page === "admin" && <AdminView video={video} upload={upload} publish={publishVideo} notify={showToast} student={student} setStudent={setStudent} />}
     </main>
     {toast && <div className="toast">✓ {toast}</div>}
   </div>;
@@ -120,4 +137,4 @@ function StudentLogin({ onLogin }) {
 
 function ProgressView() { return <div className="simple-page"><p className="kicker">MY PROGRESS</p><h1>You’re building a great habit.</h1><div className="metric-cards"><Metric value="8" label="Day streak" icon="🔥" /><Metric value="14" label="Lessons completed" icon="▶" /><Metric value="82%" label="Average quiz score" icon="✦" /></div><div className="progress-panel"><h2>Subject progress</h2><div><span>Mathematics</span><b>62%</b><i><em style={{ width: "62%" }} /></i></div><div><span>Science</span><b>38%</b><i><em style={{ width: "38%" }} /></i></div></div></div> }
 function Metric({ value, label, icon }) { return <div className="metric"><span>{icon}</span><b>{value}</b><p>{label}</p></div> }
-function AdminView({ video, upload, notify, student, setStudent }) { return <div className="simple-page admin-page"><p className="kicker">DEMO CAMPUS · ADMIN</p><h1>Content &amp; learning analytics</h1><p className="muted">Manage lesson videos and see how students are learning.</p><div className="metric-cards"><Metric value="126" label="Active students" icon="◉" /><Metric value="74%" label="Lesson completion" icon="↗" /><Metric value="8.4m" label="Avg. watch time" icon="◷" /></div><div className="admin-grid"><section className="upload-panel"><p className="eyebrow">VIDEO LIBRARY</p><h2>Upload a sample lesson</h2><p>Use your own video to power the student demo. The file remains in this browser for the preview.</p><label className="dropzone"><input type="file" accept="video/*" onChange={upload} /><span>↑</span><b>{video ? video.name : "Choose a video file"}</b><small>{video ? `${Math.round(video.size / 1024 / 1024 * 10) / 10} MB · ready to stream` : "MP4, WebM or MOV · up to 2 GB"}</small></label><button className="secondary" onClick={() => notify("Lesson published to Mathematics · Class 7")}>Publish to demo</button></section><section className="analytics-panel"><p className="eyebrow">CHAPTER PERFORMANCE</p><h2>Where learners need support</h2>{[["Fractions Made Easy", "86%", "#6d5dfc"], ["Numbers & Patterns", "74%", "#0d9d88"], ["Algebra Basics", "58%", "#f59e0b"]].map(([name, value, color]) => <div className="performance" key={name}><div><span>{name}</span><b>{value} completion</b></div><i><em style={{ width: value, background: color }} /></i></div>)}<button className="text-button" onClick={() => setStudent(student === "Aarav Sharma" ? "Meera Patel" : "Aarav Sharma")}>Preview as another student →</button></section></div></div> }
+function AdminView({ video, upload, publish, notify, student, setStudent }) { return <div className="simple-page admin-page"><p className="kicker">DEMO CAMPUS · ADMIN</p><h1>Content &amp; learning analytics</h1><p className="muted">Manage lesson videos and see how students are learning.</p><div className="metric-cards"><Metric value="126" label="Active students" icon="◉" /><Metric value="74%" label="Lesson completion" icon="↗" /><Metric value="8.4m" label="Avg. watch time" icon="◷" /></div><div className="admin-grid"><section className="upload-panel"><p className="eyebrow">VIDEO LIBRARY</p><h2>Upload a sample lesson</h2><p>Choose the video, then publish it permanently to your Railway Bucket.</p><label className="dropzone"><input type="file" accept="video/*" onChange={upload} /><span>↑</span><b>{video ? video.name : "Choose a video file"}</b><small>{video?.file ? `${Math.round(video.size / 1024 / 1024 * 10) / 10} MB · ready to publish` : "MP4, WebM or MOV · up to 2 GB"}</small></label><button className="secondary" onClick={publish}>Publish to demo</button></section><section className="analytics-panel"><p className="eyebrow">CHAPTER PERFORMANCE</p><h2>Where learners need support</h2>{[["Fractions Made Easy", "86%", "#6d5dfc"], ["Numbers & Patterns", "74%", "#0d9d88"], ["Algebra Basics", "58%", "#f59e0b"]].map(([name, value, color]) => <div className="performance" key={name}><div><span>{name}</span><b>{value} completion</b></div><i><em style={{ width: value, background: color }} /></i></div>)}<button className="text-button" onClick={() => setStudent(student === "Aarav Sharma" ? "Meera Patel" : "Aarav Sharma")}>Preview as another student →</button></section></div></div> }

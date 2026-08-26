@@ -5,7 +5,8 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  // Student learning APIs use a separate session so they do not replace a teacher/admin session.
+  const token = localStorage.getItem("token") || localStorage.getItem("student_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

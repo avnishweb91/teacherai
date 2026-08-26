@@ -48,6 +48,9 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
+	// Railway Bucket is S3-compatible object storage
+	implementation 'software.amazon.awssdk:s3:2.25.62'
+
 }
 
 tasks.named('test') {

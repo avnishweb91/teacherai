@@ -38,12 +38,15 @@ public class SecurityConfig {
 
                         // ✅ Public endpoints
                         .requestMatchers("/api/auth/**", "/api/student/**", "/api/school/register", "/api/admin/setup", "/h2-console/**", "/actuator/health").permitAll()
+                        // Video files remain private in the Bucket; this is the controlled playback proxy.
+                        .requestMatchers(HttpMethod.GET, "/api/videos/*/stream").permitAll()
 
                         // 🔒 Admin only
+                        .requestMatchers("/api/admin/videos/**").hasAnyRole("ADMIN", "SCHOOL_ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // 🔐 Protected endpoints
-                        .requestMatchers("/api/lesson/**", "/api/assessment/**", "/api/user/**", "/api/planner/**", "/api/reportcard/**", "/api/notice/**", "/api/payment/**", "/api/doubt/**", "/api/school/**", "/api/attendance/**", "/api/parent-contacts/**", "/api/syllabus/**", "/api/template/**")
+                        .requestMatchers("/api/lesson/**", "/api/assessment/**", "/api/user/**", "/api/planner/**", "/api/reportcard/**", "/api/notice/**", "/api/payment/**", "/api/doubt/**", "/api/school/**", "/api/attendance/**", "/api/parent-contacts/**", "/api/syllabus/**", "/api/template/**", "/api/videos/**")
                         .authenticated()
 
                         .anyRequest().authenticated()

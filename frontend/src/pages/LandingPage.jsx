@@ -52,6 +52,17 @@ const FEATURES = [
   },
 ];
 
+const ERP_MODULES = [
+  { icon: "🧾", title: "Admissions & Enquiries", desc: "Capture enquiries, manage applications and move every student through a clear admission pipeline.", status: "Core ERP" },
+  { icon: "👥", title: "Student Information System", desc: "One secure profile for students, guardians, classes, documents, contacts and academic history.", status: "Core ERP" },
+  { icon: "💳", title: "Fees & Finance", desc: "Configure fee structures, collect payments, track dues and keep receipts organised for every session.", status: "Core ERP" },
+  { icon: "🚌", title: "Transport & Routes", desc: "Manage routes, stops, vehicles and student allocations with safer daily operations.", status: "Core ERP" },
+  { icon: "📚", title: "Library & Inventory", desc: "Track books, issues, returns, assets, stock and vendors without scattered registers.", status: "Core ERP" },
+  { icon: "🧑‍💼", title: "Staff & Payroll", desc: "Centralise staff records, leave, attendance, roles and payroll-ready reports.", status: "Core ERP" },
+  { icon: "📣", title: "Communication Hub", desc: "Send notices, homework, circulars and parent updates from one trusted channel.", status: "Included" },
+  { icon: "📊", title: "Reports & Compliance", desc: "Turn attendance, results, fees and operations into leadership-ready reports and exports.", status: "Included" },
+];
+
 const PLANS = [
   {
     name: "Free",
@@ -165,6 +176,7 @@ export default function LandingPage() {
         <span style={{ fontWeight: 800, fontSize: 20, color: "#1e3a8a" }}>🎓 SmartBoard AI</span>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <a href="#features" style={{ color: "#475569", fontSize: 14, textDecoration: "none", fontWeight: 500 }}>Features</a>
+          <a href="#school-erp" style={{ color: "#475569", fontSize: 14, textDecoration: "none", fontWeight: 700 }}>School ERP</a>
           <Link to="/learn" style={{ color: "#475569", fontSize: 14, textDecoration: "none", fontWeight: 600 }}>Learning Demo</Link>
           <a href="#pricing" style={{ color: "#475569", fontSize: 14, textDecoration: "none", fontWeight: 500 }}>Pricing</a>
           <a href="#faq" style={{ color: "#475569", fontSize: 14, textDecoration: "none", fontWeight: 500 }}>FAQ</a>
@@ -182,21 +194,21 @@ export default function LandingPage() {
         textAlign: "center",
       }}>
         <div style={{ display: "inline-block", background: "rgba(255,255,255,0.15)", borderRadius: 20, padding: "6px 18px", marginBottom: 24 }}>
-          <span style={{ color: "#bfdbfe", fontSize: 13, fontWeight: 600 }}>🇮🇳 Built for Indian Schools · CBSE · ICSE · State Board</span>
+          <span style={{ color: "#dbeafe", fontSize: 13, fontWeight: 700 }}>🇮🇳 The operating system for modern Indian schools</span>
         </div>
         <h1 style={{
           fontSize: "clamp(32px, 5vw, 58px)", fontWeight: 900, color: "#fff",
           lineHeight: 1.15, margin: "0 auto 24px", maxWidth: 800,
         }}>
-          Save Hours of Teaching Work<br />
-          <span style={{ color: "#93c5fd" }}>Every Single Day</span>
+          One calm workspace for<br />
+          <span style={{ color: "#93c5fd" }}>your whole school</span>
         </h1>
         <p style={{
           fontSize: "clamp(16px, 2.5vw, 22px)", color: "rgba(255,255,255,0.8)",
           maxWidth: 620, margin: "0 auto 40px", lineHeight: 1.6,
         }}>
-          AI-powered lesson plans, question papers, report card remarks,
-          attendance and notices — in seconds, not hours.
+          SmartBoard brings teaching, student records, attendance, fees, communication
+          and school operations together—so teachers teach and leaders lead.
         </p>
         <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
           <Link to="/login" style={{
@@ -211,7 +223,7 @@ export default function LandingPage() {
             borderRadius: 12, fontWeight: 700, fontSize: 17, textDecoration: "none",
             border: "1.5px solid rgba(255,255,255,0.3)",
           }}>
-            Register Your School →
+            Explore School ERP →
           </Link>
         </div>
 
@@ -243,6 +255,35 @@ export default function LandingPage() {
           {["Delhi", "Mumbai", "Bangalore", "Patna", "Lucknow", "Ranchi", "Jaipur", "Hyderabad", "Pune", "Kolkata", "Chennai", "Bhopal", "Chandigarh", "Nagpur", "Surat"].map(city => (
             <span key={city} style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>{city}</span>
           ))}
+        </div>
+      </section>
+
+      {/* ── SCHOOL ERP ── */}
+      <section id="school-erp" style={{ padding: "92px 24px", background: "#f8fafc" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 30, flexWrap: "wrap", marginBottom: 40 }}>
+            <div style={{ maxWidth: 650 }}>
+              <p style={{ color: "#0f766e", fontWeight: 800, fontSize: 13, letterSpacing: 1.3, textTransform: "uppercase", marginBottom: 12 }}>For school leaders</p>
+              <h2 style={{ fontSize: "clamp(27px, 4vw, 44px)", lineHeight: 1.1, fontWeight: 900, margin: "0 0 14px", color: "#0f172a" }}>The complete school ERP, built around people.</h2>
+              <p style={{ color: "#64748b", fontSize: 16, lineHeight: 1.7, margin: 0 }}>From first enquiry to alumni records, give every department one source of truth. Your existing teacher tools stay exactly where they are—now they connect to the bigger school picture.</p>
+            </div>
+            <Link to="/school-register" style={{ background: "#0f766e", color: "#fff", padding: "13px 22px", borderRadius: 10, fontWeight: 800, fontSize: 14, textDecoration: "none", boxShadow: "0 8px 20px rgba(15,118,110,0.18)" }}>Register your school →</Link>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(235px, 1fr))", gap: 16 }}>
+            {ERP_MODULES.map(m => (
+              <div key={m.title} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: "21px 20px", minHeight: 175, boxShadow: "0 5px 18px rgba(15,23,42,0.04)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "start" }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: "#ecfeff", display: "grid", placeItems: "center", fontSize: 22 }}>{m.icon}</div>
+                  <span style={{ color: m.status === "Included" ? "#047857" : "#0f766e", background: m.status === "Included" ? "#ecfdf5" : "#f0fdfa", borderRadius: 99, padding: "4px 8px", fontSize: 10, fontWeight: 800 }}>{m.status}</span>
+                </div>
+                <h3 style={{ fontSize: 16, fontWeight: 800, margin: "16px 0 7px", color: "#0f172a" }}>{m.title}</h3>
+                <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.55, margin: 0 }}>{m.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 24, padding: "16px 18px", borderRadius: 12, background: "#0f172a", color: "#cbd5e1", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", fontSize: 13 }}>
+            <span style={{ fontSize: 20 }}>✨</span><strong style={{ color: "#fff" }}>One school. One login. One connected record.</strong><span>Start with your current workflows and expand department by department.</span>
+          </div>
         </div>
       </section>
 
@@ -281,10 +322,10 @@ export default function LandingPage() {
       <section id="features" style={{ padding: "80px 24px", textAlign: "center" }}>
         <p style={{ color: "#7c3aed", fontWeight: 700, fontSize: 14, letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>Everything You Need</p>
         <h2 style={{ fontSize: "clamp(24px, 4vw, 40px)", fontWeight: 800, margin: "0 0 12px" }}>
-          8 Powerful Tools for Teachers
+          20+ Tools for Teachers &amp; School Teams
         </h2>
         <p style={{ color: "#64748b", fontSize: 16, margin: "0 auto 48px", maxWidth: 560 }}>
-          All the tools a teacher needs in one place — no switching between apps.
+          Everything your classroom needs today, with a connected foundation for the rest of your school.
         </p>
         <div style={{
           display: "grid",

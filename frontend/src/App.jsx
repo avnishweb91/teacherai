@@ -36,6 +36,7 @@ import LandingPage from "./pages/LandingPage";
 import FormatFiller from "./pages/FormatFiller";
 import QuestionPaperBuilder from "./pages/QuestionPaperBuilder";
 import LearningDemo from "./pages/LearningDemo";
+import SchoolERPOverview from "./pages/SchoolERPOverview";
 
 function getRoleFromToken() {
   try {
@@ -76,6 +77,7 @@ function AppRoutes() {
 
         {/* SCHOOL ADMIN DASHBOARD */}
         <Route path="/school-admin" element={<ProtectedRoute><SchoolAdminDashboard /></ProtectedRoute>} />
+        <Route path="/school-erp" element={<ProtectedRoute><SchoolERPOverview /></ProtectedRoute>} />
 
         {/* DASHBOARD */}
         <Route

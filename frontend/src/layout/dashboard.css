@@ -93,6 +93,37 @@
   text-align: center;
 }
 
+/* ── School ERP command centre ───────────────────────────── */
+.erp-page { max-width: 1180px; margin: 0 auto; padding: 8px 0 50px; }
+.erp-hero { display:flex; justify-content:space-between; align-items:flex-end; gap:28px; padding:34px; border-radius:22px; color:#fff; background:linear-gradient(120deg,#0f172a 0%,#123c5a 58%,#0f766e 100%); box-shadow:0 16px 35px rgba(15,23,42,.16); }
+.erp-kicker { margin:0 0 8px; color:#5eead4; text-transform:uppercase; letter-spacing:1.5px; font-size:11px; font-weight:800; }
+.erp-hero h1 { margin:0 0 10px; max-width:650px; font-size:clamp(28px,4vw,46px); line-height:1.05; letter-spacing:-1.2px; }
+.erp-hero p:not(.erp-kicker) { margin:0; max-width:650px; color:#cbd5e1; line-height:1.65; font-size:14px; }
+.erp-hero-action { display:inline-block; white-space:nowrap; padding:12px 17px; background:#fff; color:#0f766e; border-radius:10px; font-size:13px; font-weight:800; text-decoration:none; }
+.erp-stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:18px 0 42px; }
+.erp-stat-row div { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:17px 20px; }
+.erp-stat-row strong { display:block; font-size:27px; color:#0f172a; }
+.erp-stat-row span { color:#64748b; font-size:12px; }
+.erp-section-heading { display:flex; justify-content:space-between; align-items:end; gap:20px; margin-bottom:18px; }
+.erp-section-heading h2 { margin:0; color:#0f172a; font-size:26px; letter-spacing:-.5px; }
+.erp-section-heading > span { color:#94a3b8; font-size:12px; }
+.erp-module-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:15px; }
+.erp-module-card { display:flex; flex-direction:column; min-height:205px; padding:19px; background:#fff; border:1px solid #e2e8f0; border-radius:15px; text-decoration:none; transition:transform .18s, box-shadow .18s, border-color .18s; }
+.erp-module-card:hover { transform:translateY(-3px); border-color:#99f6e4; box-shadow:0 12px 25px rgba(15,118,110,.1); }
+.erp-module-top { display:flex; justify-content:space-between; align-items:start; }
+.erp-module-icon { display:grid; place-items:center; width:42px; height:42px; border-radius:12px; background:#f0fdfa; font-size:22px; }
+.erp-module-state { border-radius:99px; padding:4px 8px; font-size:10px; font-weight:800; color:#b45309; background:#fffbeb; }
+.erp-module-state.is-live { color:#047857; background:#ecfdf5; }
+.erp-module-card h3 { margin:17px 0 7px; color:#0f172a; font-size:16px; }
+.erp-module-card p { margin:0; color:#64748b; line-height:1.55; font-size:12px; }
+.erp-open { margin-top:auto; padding-top:15px; color:#0f766e; font-size:12px; font-weight:800; }
+.erp-open span { margin-left:4px; }
+.erp-bottom-cta { display:flex; justify-content:space-between; align-items:center; gap:25px; margin-top:32px; padding:25px 28px; border:1px solid #99f6e4; border-radius:16px; background:linear-gradient(135deg,#f0fdfa,#f8fafc); }
+.erp-bottom-cta h2 { margin:0 0 7px; color:#0f172a; font-size:22px; }
+.erp-bottom-cta p:not(.erp-kicker) { margin:0; color:#64748b; font-size:13px; line-height:1.5; }
+@media(max-width:800px){.erp-hero,.erp-bottom-cta{align-items:flex-start; flex-direction:column}.erp-module-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.erp-page{padding:0}.erp-hero{padding:24px;border-radius:16px}.erp-stat-row{gap:8px}.erp-stat-row div{padding:13px 12px}.erp-stat-row strong{font-size:22px}.erp-stat-row span{font-size:10px}.erp-module-grid{grid-template-columns:1fr}.erp-section-heading{align-items:flex-start;flex-direction:column}.erp-bottom-cta{padding:22px}}
+
 /* ── Mobile sidebar overlay ───────────────────────────────── */
 .dash-overlay {
   display: none;

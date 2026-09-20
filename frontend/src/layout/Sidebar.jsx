@@ -8,14 +8,6 @@ function getRoleFromToken() {
   } catch { return null; }
 }
 
-function getSchoolIdFromToken() {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) return null;
-    return JSON.parse(atob(token.split(".")[1])).schoolId || null;
-  } catch { return null; }
-}
-
 const NAV_ITEMS = [
   { to: "/dashboard",  icon: "🏠", label: "Dashboard",              tour: null },
   { to: "/lesson",     icon: "📘", label: "Generate Lesson",        tour: "nav-lesson" },
@@ -64,6 +56,15 @@ export default function Sidebar({ open, onClose }) {
 
       {isSchoolAdmin && (
         <div style={{ padding: "8px 16px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+          <NavLink
+            to="/school-erp"
+            className={({ isActive }) => `dash-nav-item ${isActive ? "active" : ""}`}
+            onClick={onClose}
+            style={{ background: "rgba(20,184,166,0.15)", color: "#99f6e4" }}
+          >
+            <span className="dash-nav-icon">🧩</span>
+            School ERP Suite
+          </NavLink>
           <NavLink
             to="/school-admin"
             className={({ isActive }) => `dash-nav-item ${isActive ? "active" : ""}`}

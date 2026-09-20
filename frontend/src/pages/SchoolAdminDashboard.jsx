@@ -64,8 +64,13 @@ export default function SchoolAdminDashboard() {
   return (
     <DashboardLayout>
       <div className="page-header">
-        <h1 className="page-title">🏫 School Dashboard</h1>
-        <p className="page-subtitle">{school.name} — manage your teachers and view usage analytics.</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+          <div>
+            <h1 className="page-title">🏫 School Dashboard</h1>
+            <p className="page-subtitle">{school.name} — manage your teachers and view usage analytics.</p>
+          </div>
+          <a href="/school-erp" style={{ background: "#0f766e", color: "#fff", borderRadius: 9, padding: "10px 15px", textDecoration: "none", fontSize: 13, fontWeight: 800 }}>Open School ERP Suite →</a>
+        </div>
       </div>
 
       {/* ── Trial / Expired banner ── */}

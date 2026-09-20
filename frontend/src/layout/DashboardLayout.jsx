@@ -21,6 +21,7 @@ const PAGE_META = {
   "/doubt":      "Doubt Solver — SmartBoard AI",
   "/profile":    "My Profile — SmartBoard AI",
   "/upgrade":    "Upgrade to PRO — SmartBoard AI",
+  "/school-erp": "School ERP Suite — SmartBoard AI",
 };
 
 export default function DashboardLayout({ children }) {

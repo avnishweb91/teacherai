@@ -44,6 +44,9 @@ public class ErpController {
         return ResponseEntity.ok(erpService.create(auth.getName(), module, input));
     }
 
+    @GetMapping("/audit")
+    public ResponseEntity<?> audit(Authentication auth) { return ResponseEntity.ok(erpService.audit(auth.getName())); }
+
     @PutMapping("/{module}/{id}")
     public ResponseEntity<?> update(@PathVariable String module, @PathVariable Long id, @RequestBody Map<String, Object> input, Authentication auth) {
         return ResponseEntity.ok(erpService.update(auth.getName(), module, id, input));

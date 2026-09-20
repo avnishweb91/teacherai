@@ -1,8 +1,10 @@
 package com.edu.teacherai.service;
 
 import com.edu.teacherai.entity.ErpRecord;
+import com.edu.teacherai.entity.ErpAuditLog;
 import com.edu.teacherai.entity.User;
 import com.edu.teacherai.repository.ErpRecordRepository;
+import com.edu.teacherai.repository.ErpAuditLogRepository;
 import com.edu.teacherai.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,11 +21,13 @@ public class ErpService {
     );
 
     private final ErpRecordRepository recordRepo;
+    private final ErpAuditLogRepository auditRepo;
     private final UserRepository userRepo;
     private final ObjectMapper mapper;
 
-    public ErpService(ErpRecordRepository recordRepo, UserRepository userRepo, ObjectMapper mapper) {
+    public ErpService(ErpRecordRepository recordRepo, ErpAuditLogRepository auditRepo, UserRepository userRepo, ObjectMapper mapper) {
         this.recordRepo = recordRepo;
+        this.auditRepo = auditRepo;
         this.userRepo = userRepo;
         this.mapper = mapper;
     }
@@ -54,31 +58,39 @@ public class ErpService {
     public Map<String, Object> create(String mobile, String module, Map<String, Object> input) {
         User user = currentUser(mobile);
         Long schoolId = requireSchool(user);
+        requireManager(user);
         String normalized = normalize(module);
         ErpRecord record = new ErpRecord();
         record.setSchoolId(schoolId);
         record.setModuleType(normalized);
         record.setCreatedBy(user.getId());
         apply(record, input);
-        return toMap(recordRepo.save(record));
+        ErpRecord saved = recordRepo.save(record);
+        auditRepo.save(new ErpAuditLog(schoolId, user.getId(), "CREATE", normalized, saved.getId()));
+        return toMap(saved);
     }
 
     @Transactional
     public Map<String, Object> update(String mobile, String module, Long id, Map<String, Object> input) {
         User user = currentUser(mobile);
+        requireManager(user);
         String normalized = normalize(module);
         ErpRecord record = recordRepo.findByIdAndSchoolIdAndModuleType(id, requireSchool(user), normalized)
                 .orElseThrow(() -> new RuntimeException("ERP record not found"));
         apply(record, input);
-        return toMap(recordRepo.save(record));
+        ErpRecord saved = recordRepo.save(record);
+        auditRepo.save(new ErpAuditLog(requireSchool(user), user.getId(), "UPDATE", normalized, saved.getId()));
+        return toMap(saved);
     }
 
     @Transactional
     public void delete(String mobile, String module, Long id) {
         User user = currentUser(mobile);
+        requireManager(user);
         ErpRecord record = recordRepo.findByIdAndSchoolIdAndModuleType(id, requireSchool(user), normalize(module))
                 .orElseThrow(() -> new RuntimeException("ERP record not found"));
         recordRepo.delete(record);
+        auditRepo.save(new ErpAuditLog(requireSchool(user), user.getId(), "DELETE", normalize(module), id));
     }
 
     public Map<String, Long> summary(String mobile) {
@@ -102,6 +114,7 @@ public class ErpService {
     @Transactional
     public Map<String, Object> receipt(String mobile, Long id, Map<String, Object> input) {
         User user = currentUser(mobile);
+        requireManager(user);
         ErpRecord record = recordRepo.findByIdAndSchoolIdAndModuleType(id, requireSchool(user), "FEES")
                 .orElseThrow(() -> new RuntimeException("Fee invoice not found"));
         Map<String, Object> data = readData(record);
@@ -111,7 +124,9 @@ public class ErpService {
         if (input != null) data.putAll(input);
         record.setStatus("PAID");
         writeData(record, data);
-        return toMap(recordRepo.save(record));
+        ErpRecord saved = recordRepo.save(record);
+        auditRepo.save(new ErpAuditLog(requireSchool(user), user.getId(), "RECEIPT", "FEES", saved.getId()));
+        return toMap(saved);
     }
 
     @Transactional
@@ -168,9 +183,27 @@ public class ErpService {
         return report;
     }
 
+    public List<Map<String, Object>> audit(String mobile) {
+        User user = currentUser(mobile);
+        requireManager(user);
+        return auditRepo.findTop100BySchoolIdOrderByCreatedAtDesc(requireSchool(user)).stream().map(log -> {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", log.getId()); item.put("userId", log.getUserId()); item.put("action", log.getAction());
+            item.put("moduleType", log.getModuleType()); item.put("recordId", log.getRecordId() == null ? "" : log.getRecordId());
+            item.put("createdAt", log.getCreatedAt());
+            return item;
+        }).toList();
+    }
+
     private Long requireSchool(User user) {
         if (user.getSchoolId() == null) throw new IllegalStateException("ERP access requires a school account");
         return user.getSchoolId();
+    }
+
+    private void requireManager(User user) {
+        if (!"SCHOOL_ADMIN".equals(user.getRole()) && !"ADMIN".equals(user.getRole())) {
+            throw new SecurityException("Only school administrators can manage ERP records");
+        }
     }
 
     private String normalize(String module) {
@@ -185,12 +218,29 @@ public class ErpService {
         if (title == null || title.toString().isBlank()) throw new IllegalArgumentException("Record title is required");
         record.setTitle(title.toString().trim());
         record.setStatus(input.getOrDefault("status", "ACTIVE").toString().trim().toUpperCase(Locale.ROOT));
+        validate(record.getModuleType(), input);
         Map<String, Object> data = new LinkedHashMap<>(input);
         data.remove("title");
         data.remove("status");
         try { record.setDataJson(mapper.writeValueAsString(data)); }
         catch (JsonProcessingException e) { throw new IllegalArgumentException("Invalid record data"); }
     }
+
+    private void validate(String module, Map<String, Object> input) {
+        if ("FEES".equals(module) || "PAYROLL".equals(module)) {
+            Object amount = input.get("amount");
+            Object salary = input.get("basicSalary");
+            String numeric = amount != null ? amount.toString() : salary != null ? salary.toString() : null;
+            if (numeric != null) {
+                try { if (Double.parseDouble(numeric.replace(",", "")) < 0) throw new IllegalArgumentException("Amounts cannot be negative"); }
+                catch (NumberFormatException ignored) { throw new IllegalArgumentException("Amounts must be numeric"); }
+            }
+        }
+        if ("ADMISSIONS".equals(module) && blank(input.get("applicantName"))) throw new IllegalArgumentException("Applicant name is required");
+        if ("STUDENTS".equals(module) && blank(input.get("studentName"))) throw new IllegalArgumentException("Student name is required");
+    }
+
+    private boolean blank(Object value) { return value == null || value.toString().isBlank(); }
 
     private Map<String, Object> readData(ErpRecord record) {
         try { return new LinkedHashMap<>(mapper.readValue(record.getDataJson(), Map.class)); }

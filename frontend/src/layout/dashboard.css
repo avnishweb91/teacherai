@@ -167,9 +167,17 @@
 .erp-report-metrics span { padding:6px; border-radius:6px; background:#f0fdfa; color:#64748b; font-size:9px; }
 .erp-report-metrics b { display:block; margin-top:2px; color:#0f766e; font-size:11px; }
 .erp-workflow-message { margin:10px 0 0; color:#0f766e; font-size:12px; font-weight:700; }
+.erp-audit { margin-top:32px; }
+.erp-audit-list { background:#fff; border:1px solid #e2e8f0; border-radius:13px; overflow:hidden; }
+.erp-audit-list > div { display:grid; grid-template-columns:90px 1fr auto; gap:14px; padding:12px 15px; border-bottom:1px solid #f1f5f9; align-items:center; font-size:11px; }
+.erp-audit-list > div:last-child { border-bottom:0; }
+.erp-audit-list strong { color:#0f766e; font-size:10px; }
+.erp-audit-list span { color:#475569; }
+.erp-audit-list time { color:#94a3b8; font-size:10px; }
+.erp-audit-empty { background:#fff; border:1px solid #e2e8f0; border-radius:13px; padding:20px; color:#94a3b8; font-size:12px; }
 @media(max-width:1100px){.erp-automation-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:800px){.erp-automation-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:520px){.erp-automation-grid{grid-template-columns:1fr}}
+@media(max-width:520px){.erp-automation-grid{grid-template-columns:1fr}.erp-audit-list > div{grid-template-columns:1fr;gap:4px}.erp-record-tools{flex-wrap:wrap}.erp-record-tools button{flex:1}}
 @media(max-width:800px){.erp-hero,.erp-bottom-cta{align-items:flex-start; flex-direction:column}.erp-module-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:800px){.erp-workspace-grid{grid-template-columns:1fr}.erp-workspace-header{align-items:flex-start;flex-direction:column;width:100%}.erp-record-tools{width:100%}.erp-record-tools input{flex:1}}
 @media(max-width:520px){.erp-page{padding:0}.erp-hero{padding:24px;border-radius:16px}.erp-stat-row{gap:8px}.erp-stat-row div{padding:13px 12px}.erp-stat-row strong{font-size:22px}.erp-stat-row span{font-size:10px}.erp-module-grid{grid-template-columns:1fr}.erp-section-heading{align-items:flex-start;flex-direction:column}.erp-bottom-cta{padding:22px}.erp-workspace{padding:16px;border-radius:14px}.erp-record-tools{flex-direction:column}.erp-record-tools input{width:100%}.erp-record{align-items:flex-start;flex-direction:column}.erp-record-actions{width:100%}}

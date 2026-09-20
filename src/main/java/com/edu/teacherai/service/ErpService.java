@@ -54,6 +54,20 @@ public class ErpService {
                 .toList();
     }
 
+    public Map<String, Object> getRecord(String mobile, String module, Long id) {
+        Long school = schoolId(mobile);
+        ErpRecord record = recordRepo.findByIdAndSchoolIdAndModuleType(id, school, normalize(module)).orElseThrow(() -> new RuntimeException("ERP record not found"));
+        return toMap(record);
+    }
+
+    @Transactional
+    public Map<String, Object> markFeePaid(Long schoolId, Long invoiceId, String paymentId, Object amount) {
+        ErpRecord record = recordRepo.findByIdAndSchoolIdAndModuleType(invoiceId, schoolId, "FEES").orElseThrow(() -> new RuntimeException("Fee invoice not found"));
+        Map<String, Object> data = readData(record); data.put("paymentStatus", "PAID"); data.put("paymentId", paymentId); data.put("paidAt", java.time.LocalDateTime.now().toString());
+        if (amount != null) data.put("paidAmount", amount); data.putIfAbsent("receiptNo", "REC-" + java.time.Year.now().getValue() + "-" + String.format("%05d", System.nanoTime() % 100000));
+        record.setStatus("PAID"); writeData(record, data); return toMap(recordRepo.save(record));
+    }
+
     @Transactional
     public Map<String, Object> create(String mobile, String module, Map<String, Object> input) {
         User user = currentUser(mobile);

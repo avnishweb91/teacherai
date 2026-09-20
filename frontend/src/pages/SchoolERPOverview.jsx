@@ -39,7 +39,7 @@ export default function SchoolERPOverview() {
   const loadRecords = async (key = selectedKey, search = query) => {
     setLoading(true);
     try { const response = await api.get(`/api/erp/${key}`, { params: search ? { q: search } : {} }); setRecords(response.data || []); setError(""); }
-    catch (err) { setError(err?.response?.data?.message || "Could not load ERP records."); }
+    catch (err) { setError(err?.response?.data?.message || (err?.response?.status === 401 ? "Your session is no longer valid for this ERP action. Please sign in again when ready." : "Could not load ERP records.")); }
     finally { setLoading(false); }
   };
   useEffect(() => { loadSummary(); loadAudit(); }, []);
@@ -53,10 +53,10 @@ export default function SchoolERPOverview() {
     const title = form.title || form.studentName || form.applicantName || form.staffName || form.itemName || form.bookTitle || form.subject || form.reportName || form.personName || "ERP record";
     setSaving(true);
     try { const payload = { ...form, title, status: form.status || "ACTIVE" }; if (editing) await api.put(`/api/erp/${module.key}/${editing}`, payload); else await api.post(`/api/erp/${module.key}`, payload); setForm(initialForm(module)); setEditing(null); await loadRecords(); await loadSummary(); await loadAudit(); }
-    catch (err) { setError(err?.response?.data?.message || "Could not save this record."); }
+    catch (err) { setError(err?.response?.data?.message || (err?.response?.status === 401 ? "Your session is no longer valid for this ERP action. Please sign in again when ready." : "Could not save this record.")); }
     finally { setSaving(false); }
   };
-  const remove = async id => { if (!window.confirm("Delete this ERP record?")) return; try { await api.delete(`/api/erp/${module.key}/${id}`); await loadRecords(); await loadSummary(); await loadAudit(); } catch (err) { setError(err?.response?.data?.message || "Could not delete this record."); } };
+  const remove = async id => { if (!window.confirm("Delete this ERP record?")) return; try { await api.delete(`/api/erp/${module.key}/${id}`); await loadRecords(); await loadSummary(); await loadAudit(); } catch (err) { setError(err?.response?.data?.message || (err?.response?.status === 401 ? "Your session is no longer valid for this ERP action. Please sign in again when ready." : "Could not delete this record.")); } };
   const exportCsv = () => { const rows = records.map(record => Object.fromEntries(["id", "title", "status", ...module.fields.map(([key]) => key)].map(key => [key, record[key] ?? ""]))); if (!rows.length) return; const headers = Object.keys(rows[0]); const csv = [headers, ...rows.map(row => headers.map(key => `"${String(row[key]).replaceAll('"', '""')}"`))].map(row => row.join(",")).join("\n"); const blob = new Blob([csv], { type: "text/csv;charset=utf-8" }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `${module.key.toLowerCase()}-records.csv`; link.click(); URL.revokeObjectURL(url); };
   const payFee = async record => {
     setPaying(record.id); setError("");
@@ -66,7 +66,7 @@ export default function SchoolERPOverview() {
       const order = (await api.post("/api/payment/school-fee/create-order", { invoiceId: record.id })).data;
       const checkout = new window.Razorpay({ key: order.keyId, amount: order.amount, currency: order.currency, name: "SmartBoard School Fees", description: record.title, order_id: order.orderId, handler: async response => { await api.post("/api/payment/school-fee/verify", response); await loadRecords(); await loadSummary(); await loadAudit(); }, modal: { ondismiss: () => setPaying(null) } });
       checkout.open();
-    } catch (err) { setError(err?.response?.data?.message || "Could not start the payment."); setPaying(null); }
+    } catch (err) { setError(err?.response?.data?.message || (err?.response?.status === 401 ? "Your session is no longer valid for this payment action. Please sign in again when ready." : "Could not start the payment.")); setPaying(null); }
   };
 
   return <DashboardLayout><div className="erp-page">

@@ -57,4 +57,14 @@ public class ErpController {
         erpService.delete(auth.getName(), module, id);
         return ResponseEntity.noContent().build();
     }
+
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<Map<String, String>> forbidden(SecurityException error) {
+        return ResponseEntity.status(403).body(Map.of("message", error.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> badRequest(IllegalArgumentException error) {
+        return ResponseEntity.badRequest().body(Map.of("message", error.getMessage()));
+    }
 }

@@ -17,7 +17,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
-    if (status === 401 && !error.config?._skipAuthRedirect) {
+    // ERP writes and payment flows should show their API error in-place. A rejected
+    // save must not erase a still-usable session and throw the user back to login.
+    const isSensitiveWorkflow = /\/api\/(erp|payment\/school-fee|student-directory)\//.test(error.config?.url || "");
+    if (status === 401 && !error.config?._skipAuthRedirect && !isSensitiveWorkflow) {
       localStorage.removeItem("token");
       window.dispatchEvent(new Event("auth:logout"));
     }
